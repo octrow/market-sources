@@ -31,17 +31,21 @@ def _price(offer: dict) -> int | None:
     return int(raw) if isinstance(raw, (int, float)) else None
 
 
-def _image(offer: dict) -> str | None:
-    photos = offer.get("photos") or []
-    if not photos:
-        return None
-    first = photos[0]
-    link = first.get("link")
-    if not link:
-        return None
-    width = first.get("width") or 800
-    height = first.get("height") or 600
-    return link.replace("{width}", str(width)).replace("{height}", str(height))
+def _images(offer: dict) -> list[str]:
+    """Every listing photo with its size placeholders resolved, in payload order.
+
+    A photo entry with no `link` is dropped rather than kept as a hole: the
+    consumer indexes views by position and a None would break that count.
+    """
+    urls = []
+    for photo in offer.get("photos") or []:
+        link = photo.get("link")
+        if not link:
+            continue
+        width = photo.get("width") or 800
+        height = photo.get("height") or 600
+        urls.append(link.replace("{width}", str(width)).replace("{height}", str(height)))
+    return urls
 
 
 def _city(offer: dict) -> str | None:
@@ -69,13 +73,15 @@ def _offer_to_product(offer: dict) -> RawProduct | None:
     title = offer.get("title")
     if not offer_id or not title:
         return None
+    images = _images(offer)
     return RawProduct(
         source=SOURCE,
         product_id=str(offer_id),
         title=title,
         price=_price(offer),
         url=offer.get("url"),
-        image_url=_image(offer),
+        image_url=images[0] if images else None,
+        image_urls=images,
     )
 
 

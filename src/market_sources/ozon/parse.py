@@ -8,10 +8,13 @@ Widget lookups match on the widget NAME (the part before the first "-" in a
 """
 
 import json
+import logging
 import re
 from datetime import UTC, datetime
 
 from market_sources.base import RawOffer, RawProduct, RawReview
+
+log = logging.getLogger(__name__)
 
 SOURCE = "ozon"
 BASE_URL = "https://www.ozon.kz"
@@ -34,6 +37,7 @@ def _widget(page: dict, name: str) -> dict | None:
     try:
         return json.loads(ws[key])
     except (json.JSONDecodeError, TypeError):
+        log.debug("ozon widget %s: unparseable widgetStates JSON", name, exc_info=True)
         return None
 
 
@@ -46,6 +50,7 @@ def _widgets(page: dict, name: str) -> list[dict]:
         try:
             result.append(json.loads(value))
         except (json.JSONDecodeError, TypeError):
+            log.debug("ozon widget %s: skipping unparseable widgetStates JSON", name, exc_info=True)
             continue
     return result
 
@@ -97,13 +102,23 @@ def _search_rating(main_state: list) -> tuple[float | None, int | None]:
     return None, None
 
 
-def _search_image(item: dict) -> str | None:
+def _search_images(item: dict) -> list[str]:
+    """Every tile photo, in payload order, falling back to the cover image.
+
+    Search tiles usually carry one entry; the gallery lives on the product page.
+    The list shape is what the protocol promises, so a single-photo tile is a
+    one-element list rather than a special case for the consumer to handle.
+    """
     tile = item.get("tileImage") or {}
-    for entry in tile.get("items") or []:
-        link = (entry.get("image") or {}).get("link")
-        if link:
-            return link
-    return tile.get("coverImage")
+    urls = [
+        link
+        for entry in tile.get("items") or []
+        if (link := (entry.get("image") or {}).get("link"))
+    ]
+    if urls:
+        return urls
+    cover = tile.get("coverImage")
+    return [cover] if cover else []
 
 
 def _parse_search_item(item: dict) -> RawProduct | None:
@@ -116,13 +131,15 @@ def _parse_search_item(item: dict) -> RawProduct | None:
     if not sku or price is None or not name:
         return None
     rating, reviews = _search_rating(main_state)
+    images = _search_images(item)
     return RawProduct(
         source=SOURCE,
         product_id=str(sku),
         title=name,
         price=float(price),
         url=_clean_url((item.get("action") or {}).get("link")),
-        image_url=_search_image(item),
+        image_url=images[0] if images else None,
+        image_urls=images,
         rating=rating,
         review_count=reviews,
     )

@@ -1,0 +1,76 @@
+schema: spec-driven
+
+context: |
+  market-sources — three Kazakhstani marketplace adapters (Kaspi.kz, OLX.kz,
+  Ozon.kz) behind one `ProductSource` protocol, plus the two transport layers
+  under them. Extracted from `buy-smarter`, with the transport design informed by
+  three more repos (`olx-almaty-phone-analyzer`, `get_cool_event`) that each
+  hand-rolled the same polite-HTTP and browser-session patterns and each got a
+  different part wrong.
+
+  Stack: Python >=3.12, src layout (`src/market_sources/`), hatchling, pytest with
+  `asyncio_mode = "auto"`. Tests: `uv run pytest`.
+
+  Runtime deps are `httpx` and `pydantic` only. `playwright` is the optional
+  `browser` extra and is imported lazily inside the launch path — `import
+  market_sources` MUST work without it, and a test blocks the import to keep that
+  true. A consumer wanting only Kaspi and OLX installs nothing extra.
+
+  Raw in, raw out. `RawProduct` / `RawOffer` / `RawReview` are deliberately
+  source-shaped, not canonical. Normalization, currency conversion, dedup and
+  ranking belong to the consumer; the library's job ends at "the site said this".
+
+  Every adapter is three files and only one does I/O: `client.py` (or
+  `browser.py`) knows endpoints and nothing about shapes; `parse.py` is pure
+  functions over already-decoded dicts and never imports the client; `source.py`
+  wires them into a `ProductSource`. That split is what lets the parsers be tested
+  against saved payloads with no network and no mocking.
+
+  Capabilities map onto modules:
+    base.py                -> product-source-protocol
+    polite_http.py         -> polite-http
+    playwright_session.py  -> browser-session
+    kaspi/                 -> kaspi-source
+    olx/                   -> olx-source
+    ozon/                  -> ozon-source
+
+  The suite never touches the network, a browser, or a real clock. HTTP goes
+  through an `httpx.AsyncBaseTransport` double (not respx — one fewer dependency),
+  the browser through an injected `page_factory`, and time through injected
+  `sleep` / `rng`. A scenario that would need any of the three is a scenario that
+  cannot be verified.
+
+  Anti-bot behavior is load-bearing, not incidental. A bare `python-httpx`
+  User-Agent is 403'd by every site in scope; Kaspi gates on `referer`; Ozon's
+  challenge loads its assets through images/css/fonts, so route-blocking them
+  earns a 403. Rules that look like superstition are usually the price of a 200 —
+  spec the reason alongside the rule.
+
+  Style: comments explain *why*, not what. Deliberate simplifications are marked
+  with a `ponytail:` comment naming the ceiling and the upgrade path.
+
+rules:
+  specs:
+    - >-
+      Every scenario ends with an Anchor bullet of the form
+      "- **Anchor**: tests/<file>.py::<test_name>" (path in backticks) naming the
+      test that verifies it. Anchors and tests should stay a bijection — no
+      orphan anchors, no unanchored tests.
+    - >-
+      State behavior the code guarantees, not the code's structure. A requirement
+      that would still be true after a rewrite is a good one.
+    - >-
+      Requirements carry MUST or SHALL; the strict validator warns otherwise.
+    - >-
+      Capture the why when a rule looks arbitrary. The browser User-Agent, the
+      Kaspi referer, the Retry-After clamp and the no-asset-blocking rule each
+      exist to prevent a specific failure, and a spec that omits the reason
+      invites a "cleanup" that reintroduces it.
+  design:
+    - >-
+      Only write a design when the change has a real decision to record. A
+      mechanical change to an existing capability does not need one.
+  tasks:
+    - >-
+      Tests come before implementation. The failing test for each scenario is its
+      own task, ahead of the code that makes it pass.

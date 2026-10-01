@@ -100,6 +100,36 @@ def test_image_falls_through_medium_large_small():
     assert none.image_url is None
 
 
+def test_all_image_urls_preserved():
+    [product] = parse_search(
+        {
+            "data": {
+                "cards": [
+                    card(
+                        previewImages=[
+                            {"medium": "https://img.test/1m.jpg"},
+                            {"medium": "https://img.test/2m.jpg", "large": "https://img.test/2l.jpg"},
+                            {"large": "https://img.test/3l.jpg"},
+                        ]
+                    )
+                ]
+            }
+        }
+    )
+    assert product.image_urls == [
+        "https://img.test/1m.jpg",
+        "https://img.test/2m.jpg",
+        "https://img.test/3l.jpg",
+    ]
+    assert product.image_url == "https://img.test/1m.jpg"
+
+
+def test_no_photos_empty_list():
+    [product] = parse_search({"data": {"cards": [card(previewImages=[])]}})
+    assert product.image_urls == []
+    assert product.image_url is None
+
+
 def test_parse_search_tolerates_an_empty_payload():
     assert parse_search({}) == []
     assert parse_search({"data": None}) == []

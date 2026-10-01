@@ -56,12 +56,14 @@ def _has_variant_letter_suffix(card: dict) -> bool:
     return bool(match) and match.end() != len(raw_id)
 
 
-def _card_image(card: dict) -> str | None:
-    images = card.get("previewImages") or []
-    if not images:
-        return None
-    first = images[0]
-    return first.get("medium") or first.get("large") or first.get("small")
+def _card_images(card: dict) -> list[str]:
+    """Every preview photo, best available size per entry, in payload order."""
+    urls = []
+    for image in card.get("previewImages") or []:
+        url = image.get("medium") or image.get("large") or image.get("small")
+        if url:
+            urls.append(url)
+    return urls
 
 
 def _card_link(shop_link: str | None) -> str | None:
@@ -90,6 +92,7 @@ def parse_search(payload: dict) -> list[RawProduct]:
             )
             continue
         price = card.get("unitSalePrice") or card.get("unitPrice")
+        images = _card_images(card)
         products.append(
             RawProduct(
                 source=SOURCE,
@@ -97,7 +100,8 @@ def parse_search(payload: dict) -> list[RawProduct]:
                 title=title,
                 price=float(price) if price is not None else None,
                 url=_card_link(card.get("shopLink")),
-                image_url=_card_image(card),
+                image_url=images[0] if images else None,
+                image_urls=images,
                 rating=card.get("rating"),
                 review_count=card.get("reviewsQuantity"),
                 specs_available=not _has_variant_letter_suffix(card),

@@ -189,7 +189,13 @@ class BrowserSession:
         if self._page is not None and self._ready and self._alive():
             return
         self._page = await self._open_page()
-        await self.prepare_page(self._page)
+        try:
+            await self.prepare_page(self._page)
+        except BaseException:
+            # A failed ready-check must not orphan the page: the next call
+            # would open another one on top of it, leaking a tab per attempt.
+            await self._shutdown()
+            raise
         self._ready = True
 
     def _alive(self) -> bool:
@@ -203,6 +209,9 @@ class BrowserSession:
             return await self._page_factory()
         pw = _playwright()
         if self._browser is None or not self._browser.is_connected():
+            if self._pw is not None:  # driver of a crashed browser: stop, don't leak
+                await _stop_quietly(self._pw)
+                self._pw = None
             self._pw = await pw.async_playwright().start()
             self._browser = await self._pw.chromium.launch(
                 headless=self.headless, args=self.launch_args
@@ -264,15 +273,19 @@ class BrowserSession:
             if closable is not None:
                 await _close_quietly(closable)
         if self._pw is not None:
-            try:
-                await self._pw.stop()
-            except Exception as err:  # noqa: BLE001 — teardown is best-effort
-                log.debug("browser session: playwright stop failed: %s", err)
+            await _stop_quietly(self._pw)
         self._context = self._browser = self._pw = None
 
 
 async def _body_text(page: Any) -> str:
     return await page.evaluate("() => document.body.innerText")
+
+
+async def _stop_quietly(pw: Any) -> None:
+    try:
+        await pw.stop()
+    except Exception as err:  # noqa: BLE001 — teardown is best-effort
+        log.debug("browser session: playwright stop failed: %s", err)
 
 
 async def _close_quietly(obj: Any) -> None:

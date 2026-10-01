@@ -20,6 +20,11 @@ class RawProduct(BaseModel):
     currency: str = "KZT"
     url: str | None = None
     image_url: str | None = None
+    # Every photo the listing carried, in the site's order (index 0 = lead photo,
+    # so `image_url` is its mirror). Kept in full because a product is 1-6 views
+    # of ONE item and a consumer learning visual taste needs all of them; the
+    # sites already send the array, dropping it costs a re-fetch to recover.
+    image_urls: list[str] = []
     rating: float | None = None
     review_count: int | None = None
     # False when the search card's id carried a non-numeric variant-letter

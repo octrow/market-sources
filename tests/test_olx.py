@@ -73,6 +73,27 @@ def test_a_price_param_whose_value_is_not_a_dict_is_ignored():
     assert product.price is None
 
 
+def test_all_image_urls_preserved():
+    [product] = parse_search(
+        {
+            "data": [
+                listing(
+                    photos=[
+                        {"link": "https://i.test/a-{width}x{height}.jpg", "width": 1080, "height": 720},
+                        {"link": "https://i.test/b-{width}x{height}.jpg"},
+                        {"width": 10},  # no link — skipped, not a placeholder
+                    ]
+                )
+            ]
+        }
+    )
+    assert product.image_urls == [
+        "https://i.test/a-1080x720.jpg",
+        "https://i.test/b-800x600.jpg",
+    ]
+    assert product.image_url == "https://i.test/a-1080x720.jpg"
+
+
 def test_parse_search_tolerates_an_empty_payload():
     assert parse_search({}) == []
     assert parse_search({"data": None}) == []

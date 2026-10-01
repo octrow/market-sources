@@ -163,6 +163,19 @@ async def test_a_failing_ready_hook_propagates():
         await sess.fetch_text("https://x.test/")
 
 
+async def test_a_failing_ready_hook_closes_the_page_it_opened():
+    class Broken(BrowserSession):
+        async def prepare_page(self, page):
+            raise BrowserSessionError("challenge not passed")
+
+    factory = PageFactory(FakePage(name="p1"), FakePage(name="p2"))
+    sess = Broken(page_factory=factory, idle_timeout_s=0)
+    for _ in range(2):
+        with pytest.raises(BrowserSessionError):
+            await sess.fetch_text("https://x.test/")
+    assert [p.closed for p in factory.opened] == [True, True]
+
+
 # ------------------------------------------------------------- relaunch / retry
 
 
@@ -271,3 +284,62 @@ async def test_a_zero_idle_timeout_schedules_nothing():
     await sess.fetch_text("https://x.test/")
     assert sleep.calls == []
     assert sess._idle_task is None
+
+
+# ------------------------------------------------------- playwright driver leak
+
+
+async def test_a_crashed_browser_relaunch_stops_the_old_playwright_driver(monkeypatch):
+    import market_sources.playwright_session as mod
+
+    drivers: list = []
+
+    class FakeContext:
+        async def new_page(self):
+            return FakePage()
+
+        async def close(self):
+            pass
+
+    class FakeBrowser:
+        def is_connected(self):
+            return True
+
+        def on(self, _event, _cb):
+            pass
+
+        async def new_context(self, **_kw):
+            return FakeContext()
+
+        async def close(self):
+            pass
+
+    class FakeDriver:
+        def __init__(self):
+            self.stopped = False
+            self.chromium = self
+
+        async def launch(self, **_kw):
+            return FakeBrowser()
+
+        async def stop(self):
+            self.stopped = True
+
+    class FakeStarter:
+        async def start(self):
+            drivers.append(FakeDriver())
+            return drivers[-1]
+
+    class FakeApi:
+        @staticmethod
+        def async_playwright():
+            return FakeStarter()
+
+    monkeypatch.setattr(mod, "_pw_api", FakeApi())
+    sess = BrowserSession(idle_timeout_s=0)
+    await sess._open_page()
+    sess._on_disconnect(None)  # browser crashed; the driver is still running
+    await sess._open_page()
+    assert [d.stopped for d in drivers] == [True, False]
+    await sess.aclose()
+    assert drivers[1].stopped is True
