@@ -28,7 +28,8 @@ BASE_URL = "https://www.ozon.kz"
 BASE_URL_ENV_VAR = "OZON_BASE_URL"
 CHALLENGE_WAIT_MS = 15000  # let the JS challenge set cookies on first home load
 
-_ANTIBOT_RE = re.compile(r"antibot|ограничен|доступа?", re.I)
+# Only challenge-page phrases: a bare "доступ" also matches "Доступные цены…".
+_ANTIBOT_RE = re.compile(r"antibot|доступ\w* ограничен|ограничен\w* доступ|нет доступа", re.I)
 
 
 class OzonError(BrowserSessionError):
@@ -66,7 +67,10 @@ class OzonBrowser(BrowserSession):
     async def fetch_json(self, path: str, retries: int = 1) -> dict:
         """Fetch a composer-api page for ``path`` and return the decoded JSON."""
         text = await self.fetch_text(self.composer_url(path), retries=retries)
-        return json.loads(text)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as exc:  # an HTML challenge/error page, not JSON
+            raise OzonError(f"composer-api returned non-JSON ({len(text)} chars)") from exc
 
 
 __all__ = ["BASE_URL", "CHALLENGE_WAIT_MS", "OzonBrowser", "OzonError"]

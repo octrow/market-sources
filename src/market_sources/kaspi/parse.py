@@ -110,22 +110,20 @@ def parse_search(payload: dict) -> list[RawProduct]:
     return products
 
 
-def _offer_price(offer: dict) -> float:
-    price = offer.get("price")
-    return float(price) if price is not None else 0.0
-
-
 def parse_offers(payload: dict, product_id: str) -> list[RawOffer]:
     """Parse an offers (``offer-view/offers/{id}``) response into ``RawOffer``s."""
     offers = payload.get("offers") or []
     result = []
     for offer in offers:
+        # A priceless offer would read as the cheapest seller at 0 KZT — drop it.
+        if offer.get("price") is None:
+            continue
         result.append(
             RawOffer(
                 source=SOURCE,
                 product_id=str(product_id),
                 seller=offer.get("merchantName"),
-                price=_offer_price(offer),
+                price=float(offer["price"]),
                 delivery=offer.get("deliveryDuration"),
                 merchant_id=str(offer["merchantId"]) if offer.get("merchantId") else None,
                 merchant_rating=offer.get("merchantRating"),

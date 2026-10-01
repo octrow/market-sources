@@ -159,9 +159,12 @@ def test_parse_offers_maps_a_merchant_offer():
     assert (offer.merchant_rating, offer.merchant_review_count) == (4.6, 890)
 
 
-def test_a_missing_offer_price_becomes_zero_and_a_missing_merchant_id_is_none():
-    [offer] = parse_offers({"offers": [{}]}, 999)
-    assert offer.price == 0.0
+def test_an_offer_without_a_price_is_skipped():
+    assert parse_offers({"offers": [{}]}, 999) == []
+
+
+def test_a_missing_merchant_id_is_none():
+    [offer] = parse_offers({"offers": [{"price": 100}]}, 999)
     assert offer.merchant_id is None
     assert offer.product_id == "999"
 

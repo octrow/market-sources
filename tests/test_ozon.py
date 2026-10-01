@@ -298,6 +298,18 @@ async def test_an_antibot_title_raises_ozon_error():
         await ozon.fetch_json("/search/?text=x")
 
 
+async def test_an_ordinary_title_mentioning_dostup_is_not_a_challenge():
+    page = FakePage(body=json.dumps({"ok": 1}), title="Доступные цены — Ozon")
+    ozon, _ = browser(page)
+    assert await ozon.fetch_json("/search/?text=x") == {"ok": 1}
+
+
+async def test_a_non_json_body_raises_ozon_error():
+    ozon, _ = browser(FakePage(body="<html>challenge</html>", title="Ozon"))
+    with pytest.raises(OzonError, match="non-JSON"):
+        await ozon.fetch_json("/search/?text=x")
+
+
 async def test_a_403_relaunches_the_session_once():
     blocked = FakePage(script=[200, 403], name="blocked")
     fresh = FakePage(script=[200, 200], body=json.dumps({"ok": 1}), name="fresh")
