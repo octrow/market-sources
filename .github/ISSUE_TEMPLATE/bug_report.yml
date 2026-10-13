@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in the library is broken or behaves wrongly
+labels: [bug]
+body:
+  - type: dropdown
+    id: source
+    attributes:
+      label: Area
+      options: [Kaspi, OLX, Ozon, PoliteClient, BrowserSession, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The call you made, what you expected and what you got. Include the query or product id.
+      placeholder: |
+        await KaspiSource().search("iphone 15") returns [] since 2026-10-12
+    validations:
+      required: true
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Traceback or log
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: market-sources, Python, OS, and playwright / curl_cffi if installed
+    validations:
+      required: true

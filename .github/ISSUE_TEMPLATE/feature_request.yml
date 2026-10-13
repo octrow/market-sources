@@ -1,0 +1,17 @@
+name: Feature request
+description: A new source, field or option
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you need and why
+      description: The problem first, then the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: payload
+    attributes:
+      label: Example data
+      description: For a new field or source, a URL or a trimmed JSON response that shows it.
+      render: json
