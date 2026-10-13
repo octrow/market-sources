@@ -1,6 +1,6 @@
 # market-sources
 
-<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/social-preview.png" alt="market-sources: async Python scrapers for Kaspi.kz, OLX.kz and Ozon.kz; a Kaspi search for "iphone 15" finds 32 offers from 379500 KZT" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/social-preview.png" alt="market-sources: async Python scrapers for Kaspi.kz, OLX.kz and Ozon.kz; a Kaspi search for &quot;iphone 15&quot; finds 32 offers from 379500 KZT" width="760"></p>
 
 <p align="center">
   <a href="https://github.com/octrow/market-sources/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/octrow/market-sources/actions/workflows/ci.yml/badge.svg"></a>
