@@ -1,5 +1,7 @@
 # market-sources
 
+<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/social-preview.png" alt="market-sources: async Python scrapers for Kaspi.kz, OLX.kz and Ozon.kz; a Kaspi search for "iphone 15" finds 32 offers from 379500 KZT" width="760"></p>
+
 <p align="center">
   <a href="https://github.com/octrow/market-sources/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/octrow/market-sources/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://pypi.org/project/market-sources/"><img alt="PyPI" src="https://img.shields.io/pypi/v/market-sources"></a>
