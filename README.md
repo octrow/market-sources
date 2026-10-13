@@ -1,46 +1,110 @@
 # market-sources
 
-Marketplace product sources behind one protocol — **Kaspi.kz**, **OLX.kz**,
-**Ozon.kz** — plus the two transport layers that kept getting rewritten
-underneath them: a polite retrying async HTTP client and a persistent headless
-browser session.
+<p align="center">
+  <a href="https://github.com/octrow/market-sources/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/octrow/market-sources/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://pypi.org/project/market-sources/"><img alt="PyPI" src="https://img.shields.io/pypi/v/market-sources"></a>
+  <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
 
-Extracted from `buy-smarter` (`src/buysmarter/sources/`), with the
-polite-HTTP/browser-session design informed by three more independent
-implementations of the same pattern: `olx-almaty-phone-analyzer`
-(`core/async_scraper.py`, `enrichment/kimovil_scraper_v2.py`) and
-`get_cool_event` (`adapters/sites.py`).
+<p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
 
-Python ≥3.12. Runtime deps: `httpx`, `pydantic`. `playwright` is the optional
-`browser` extra — needed only to *run* the Ozon adapter, never to import it.
+Async Python scrapers for **Kaspi.kz**, **OLX.kz** and **Ozon.kz** behind one `ProductSource` protocol.
+Search a product, get every seller's offer with price and delivery, read reviews and specs. Built for people
+who track prices and offers on Kazakhstan marketplaces: price monitors, deal bots, purchase research.
 
-| module | what it is |
-|---|---|
-| `market_sources.base` | `ProductSource` Protocol + `RawProduct` / `RawOffer` / `RawReview` |
-| `market_sources.polite_http` | `PoliteClient` — semaphore + jittered delay + browser headers + proxy + retry/backoff |
-| `market_sources.playwright_session` | `BrowserSession` — lazy persistent Chromium, serialized nav, ready hook, relaunch-retry |
-| `market_sources.kaspi` | `KaspiSource` / `KaspiClient` / pure `parse_*` — internal JSON API |
-| `market_sources.olx` | `OlxSource` / `OlxClient` / pure `parse_*` — public JSON API |
-| `market_sources.ozon` | `OzonSource` / `OzonBrowser` / pure `parse_*` — composer-api via browser |
+Under the adapters sit two reusable layers: `PoliteClient`, a paced, retrying async HTTP client, and
+`BrowserSession`, a persistent headless Chromium for sites that need a real browser.
 
 ```python
-from market_sources import KaspiSource, OlxSource, OzonSource, PoliteClient
+import asyncio
+from market_sources import KaspiSource
 
-source = KaspiSource()
-products = await source.search("iphone 15")
-offers = await source.offers(products[0].product_id)
-await source.aclose()
+async def main():
+    kaspi = KaspiSource()
+    products = await kaspi.search("iphone 15")
+    offers = await kaspi.offers(products[0].product_id)
+    cheapest = min(offers, key=lambda o: o.price)
+    print(products[0].title, "|", len(offers), "offers, from", cheapest.price, cheapest.currency)
+    await kaspi.aclose()
+
+asyncio.run(main())
+```
+
+A real run on 2026-10-13 (Kaspi search took 1.4 s and returned 12 products):
+
+```text
+Смартфон Apple iPhone 15 128Gb NanoSIM+eSIM черный | 32 offers, from 379500.0 KZT
+```
+
+Each offer is a plain Pydantic model:
+
+```python
+RawOffer(source='kaspi', product_id='113137790', seller='Kaz_Phones', price=379500.0, currency='KZT',
+         delivery='EXPRESS', in_stock=True, merchant_rating=4.8, merchant_review_count=32,
+         delivery_date='2026-10-13', delivery_cost=995.0, ...)
 ```
 
 ## Install
 
 ```bash
-uv add --editable ~/dev/pylibs/market-sources            # httpx + pydantic only
-uv add --editable "~/dev/pylibs/market-sources[browser]" # + playwright, for Ozon
-playwright install chromium                              # once, for the browser extra
+pip install market-sources                  # Kaspi; OLX needs the impersonate extra (below)
+pip install "market-sources[impersonate]"   # + curl_cffi, so OLX.kz's WAF lets requests through
+pip install "market-sources[browser]"       # + playwright, for Ozon.kz
+playwright install chromium                 # once, for the browser extra
 ```
 
-## Invariants (the reason this library exists)
+With uv: `uv add "market-sources[impersonate,browser]"`. Latest code from GitHub:
+`pip install "git+https://github.com/octrow/market-sources"`.
+
+Python 3.12+. Runtime dependencies are `httpx` and `pydantic`. Optional extras are imported lazily, so
+`import market_sources` works without them.
+
+## Sources
+
+| source | how it gets data | needs | notes |
+|---|---|---|---|
+| `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy |
+| `OlxSource` | OLX's public JSON API | `impersonate` extra | CloudFront rejects httpx's TLS fingerprint; with `curl_cffi` installed the client impersonates Chrome automatically (a search took 1.9 s and returned 63 listings in the run above) |
+| `OzonSource` | Ozon's composer API, read through a real browser | `browser` extra | session saved to `OZON_STATE_PATH` (default `~/.config/buysmarter/ozon_state.json`); `OZON_BASE_URL` overrides the host |
+
+Every source implements the same protocol, so consumer code doesn't care which site it talks to:
+
+```python
+class ProductSource(Protocol):
+    async def search(self, query: str, city: str | None = None) -> list[RawProduct]: ...
+    async def offers(self, product_id: str) -> list[RawOffer]: ...
+    async def reviews(self, product_id: str) -> list[RawReview]: ...
+    async def specs(self, product_id: str) -> dict[str, str]: ...
+```
+
+## Modules
+
+| module | what it is |
+|---|---|
+| `market_sources.base` | `ProductSource` Protocol + `RawProduct` / `RawOffer` / `RawReview` / `RawReviewStats` |
+| `market_sources.polite_http` | `PoliteClient`: semaphore + jittered delay + browser headers + proxy + retry/backoff |
+| `market_sources.impersonate` | `ImpersonateTransport`: an httpx transport that sends through `curl_cffi` with a Chrome TLS fingerprint |
+| `market_sources.playwright_session` | `BrowserSession`: lazy persistent Chromium, serialized navigation, ready hook, relaunch-retry |
+| `market_sources.kaspi` | `KaspiSource` / `KaspiClient` / pure `parse_*`: internal JSON API |
+| `market_sources.olx` | `OlxSource` / `OlxClient` / pure `parse_*`: public JSON API |
+| `market_sources.ozon` | `OzonSource` / `OzonBrowser` / pure `parse_*`: composer API via browser |
+
+## How it differs from a plain httpx script or Scrapy
+
+- **A bare httpx request gets a 403.** Each site has its own gate (Kaspi checks the referer, OLX fingerprints
+  TLS, Ozon serves a JavaScript challenge). The adapters already pass them, and the reasons are written down
+  below, so you don't rediscover them by trial.
+- **Scrapy is a crawler framework** with its own runtime, pipelines and settings. This is a small async library
+  you call from your own code (a bot, a FastAPI app, a cron script) and get Pydantic models back.
+- **Pacing is built in and hard to forget.** Concurrency is capped inside the client, delays are jittered, and
+  `Retry-After` is honored, so `asyncio.gather` over 40 pages won't hammer a site.
+- **Raw data, not opinions.** The models keep what the site said. Normalization, currency conversion, dedup and
+  ranking are left to you.
+
+Please use it responsibly: keep the default pacing, cache what you can, and respect each marketplace's terms.
+
+## Design rules
 
 **Every adapter is three files, and only one of them does I/O.** `client.py` (or
 `browser.py`) knows endpoints and nothing about shapes; `parse.py` is pure
@@ -111,7 +175,13 @@ the library's job ends at "the site said this".
   without the nav lock (so it could yank the page out from under an in-flight
   navigation).
 
-## Deviations from the buy-smarter originals
+## Origin
+
+Extracted from the author's `buy-smarter` project (`src/buysmarter/sources/`). The polite-HTTP and
+browser-session design is informed by three more independent implementations of the same pattern in
+`olx-almaty-phone-analyzer` and `get_cool_event`.
+
+### Changes from the original code
 
 | change | reason |
 |---|---|
@@ -133,5 +203,13 @@ browser through an injected `page_factory`, and time through injected `sleep` /
 actually reads.
 
 ```bash
-cd ~/dev/pylibs/market-sources && uv run pytest
+uv run pytest
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately: [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE)
