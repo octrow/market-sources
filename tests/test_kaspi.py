@@ -9,11 +9,10 @@ from __future__ import annotations
 import json
 
 import httpx
-import pytest
 from fakes import LowRng, RecordingSleep, ScriptedTransport
 
-from market_sources.kaspi.client import BASE_URL, DEFAULT_CITY, USER_AGENT, KaspiClient
 from market_sources.base import RawReviewStats
+from market_sources.kaspi.client import BASE_URL, DEFAULT_CITY, USER_AGENT, KaspiClient
 from market_sources.kaspi.parse import (
     parse_offers,
     parse_review_stats,

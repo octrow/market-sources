@@ -1,8 +1,26 @@
 [project]
 name = "market-sources"
 version = "0.1.0"
-description = "Marketplace product sources (Kaspi.kz / OLX.kz / Ozon.kz) on a common ProductSource protocol, plus the polite-HTTP and persistent-browser layers under them"
+description = "Async Python scrapers for Kaspi.kz, OLX.kz and Ozon.kz behind one ProductSource protocol: search, offers, reviews"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Daniil Petrov" }]
 requires-python = ">=3.12"
+keywords = ["kaspi", "olx", "ozon", "kazakhstan", "marketplace", "scraper", "price-monitoring", "httpx", "playwright", "asyncio"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 dependencies = [
     "httpx>=0.27",
     "pydantic>=2",
@@ -14,11 +32,19 @@ dependencies = [
 browser = ["playwright>=1.44"]
 # OLX's WAF blocks httpx's TLS fingerprint; curl_cffi impersonates Chrome (impersonate.py).
 impersonate = ["curl_cffi>=0.11"]
-dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[project.urls]
+Homepage = "https://github.com/octrow/market-sources"
+Issues = "https://github.com/octrow/market-sources/issues"
+Changelog = "https://github.com/octrow/market-sources/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE", "CHANGELOG.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/market_sources"]
@@ -26,3 +52,9 @@ packages = ["src/market_sources"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

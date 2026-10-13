@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from fakes import LowRng, RecordingSleep, ScriptedTransport
 import httpx
+from fakes import LowRng, RecordingSleep, ScriptedTransport
 
 from market_sources.olx.client import BASE_URL, DEFAULT_CITY_ID, USER_AGENT, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
