@@ -7,13 +7,21 @@ and returns models or plain dicts. Keeps ``client.py`` (network) and this module
 
 import logging
 import re
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
-from market_sources.base import RawOffer, RawProduct, RawReview
+from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
 
 logger = logging.getLogger(__name__)
 
 SOURCE = "kaspi"
 BASE_URL = "https://kaspi.kz"
+# Kaspi's delivery dates are shop-local; the consumer wants the calendar day there.
+DELIVERY_TIMEZONE = "Asia/Almaty"
+# Preference when the offer's ``deliveryType`` names no option it carries.
+_DELIVERY_FALLBACK_ORDER = ("EXPRESS", "TO_DOOR")
+# Review summary ``groupSummary`` ids that map onto ``RawReviewStats`` fields.
+_GROUP_FIELDS = {"ALL": "total", "NEGATIVE": "negative_count", "PICTURE": "with_photos_count"}
 
 # Fashion/apparel cards carry a variant-letter-suffixed id, e.g. "16540138b"
 # (the URL slug repeats the same suffix: "/p/krossovki-seryi-16540138b/").
@@ -110,6 +118,38 @@ def parse_search(payload: dict) -> list[RawProduct]:
     return products
 
 
+def _delivery_option(offer: dict) -> dict | None:
+    """The offer's delivery option matching its ``deliveryType``, else the fallback order."""
+    options = offer.get("deliveryOptions")
+    if not isinstance(options, dict) or not options:
+        return None
+    for key in (offer.get("deliveryType"), *_DELIVERY_FALLBACK_ORDER):
+        if isinstance(options.get(key), dict):
+            return options[key]
+    first = next(iter(options.values()))
+    return first if isinstance(first, dict) else None
+
+
+def _delivery_date(raw: object) -> str | None:
+    """ISO datetime -> the ``DELIVERY_TIMEZONE`` calendar date; naive values are UTC."""
+    if not isinstance(raw, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(ZoneInfo(DELIVERY_TIMEZONE)).date().isoformat()
+
+
+def _delivery_cost(raw: object) -> float | None:
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def parse_offers(payload: dict, product_id: str) -> list[RawOffer]:
     """Parse an offers (``offer-view/offers/{id}``) response into ``RawOffer``s."""
     offers = payload.get("offers") or []
@@ -118,6 +158,7 @@ def parse_offers(payload: dict, product_id: str) -> list[RawOffer]:
         # A priceless offer would read as the cheapest seller at 0 KZT — drop it.
         if offer.get("price") is None:
             continue
+        option = _delivery_option(offer) or {}
         result.append(
             RawOffer(
                 source=SOURCE,
@@ -128,6 +169,8 @@ def parse_offers(payload: dict, product_id: str) -> list[RawOffer]:
                 merchant_id=str(offer["merchantId"]) if offer.get("merchantId") else None,
                 merchant_rating=offer.get("merchantRating"),
                 merchant_review_count=offer.get("merchantReviewsQuantity"),
+                delivery_date=_delivery_date(option.get("delivery")),
+                delivery_cost=_delivery_cost(option.get("deliveryCost")),
             )
         )
     return result
@@ -152,9 +195,57 @@ def parse_reviews(payload: dict, product_id: str) -> list[RawReview]:
                 author=review.get("author"),
                 text=text,
                 created_at=review.get("date"),
+                pros=comment.get("plus") or None,
+                cons=comment.get("minus") or None,
             )
         )
     return result
+
+
+def _whole(raw: object) -> int | None:
+    return raw if isinstance(raw, int) and not isinstance(raw, bool) else None
+
+
+def _average(raw: object) -> float | None:
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        return None
+    return float(raw)
+
+
+def parse_review_stats(payload: dict, product_id: str) -> RawReviewStats | None:
+    """Aggregate review numbers from a reviews response fetched with ``withAgg=true``.
+
+    Returns ``None`` when the response has neither a ``summary`` nor a
+    ``groupSummary``; malformed entries inside either are skipped.
+    """
+    summary = payload.get("summary")
+    groups = payload.get("groupSummary")
+    if not isinstance(summary, dict) and not isinstance(groups, list):
+        return None
+    summary = summary if isinstance(summary, dict) else {}
+    groups = groups if isinstance(groups, list) else []
+    statistic = summary.get("statistic") if isinstance(summary.get("statistic"), list) else []
+
+    rating_counts: dict[int, int] = {}
+    for entry in statistic:
+        if not isinstance(entry, dict):
+            continue
+        rate, count = _whole(entry.get("rate")), _whole(entry.get("count"))
+        if rate is not None and count is not None and 1 <= rate <= 5:
+            rating_counts[rate] = count
+
+    group_totals = {
+        _GROUP_FIELDS[group["id"]]: _whole(group.get("total"))
+        for group in groups
+        if isinstance(group, dict) and group.get("id") in _GROUP_FIELDS
+    }
+    return RawReviewStats(
+        source=SOURCE,
+        product_id=str(product_id),
+        rating_counts=rating_counts,
+        average_rating=_average(summary.get("global")),
+        **group_totals,
+    )
 
 
 def _feature_value(feature: dict) -> str | None:
@@ -185,4 +276,11 @@ def parse_specs(payload: dict) -> dict[str, str]:
     return specs
 
 
-__all__ = ["SOURCE", "parse_offers", "parse_reviews", "parse_search", "parse_specs"]
+__all__ = [
+    "SOURCE",
+    "parse_offers",
+    "parse_review_stats",
+    "parse_reviews",
+    "parse_search",
+    "parse_specs",
+]

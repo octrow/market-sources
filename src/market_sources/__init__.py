@@ -11,7 +11,7 @@
   :mod:`market_sources.ozon` (composer-api over ``BrowserSession``).
 """
 
-from .base import ProductSource, RawOffer, RawProduct, RawReview
+from .base import ProductSource, RawOffer, RawProduct, RawReview, RawReviewStats
 from .kaspi.source import KaspiSource
 from .olx.source import OlxSource
 from .ozon.source import OzonSource
@@ -29,5 +29,6 @@ __all__ = [
     "RawOffer",
     "RawProduct",
     "RawReview",
+    "RawReviewStats",
     "parse_retry_after",
 ]

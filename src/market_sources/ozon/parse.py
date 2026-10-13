@@ -224,6 +224,17 @@ def _review_text(content: dict) -> str:
     return " ".join(p for p in parts if p).strip()
 
 
+def _helpful_votes(review: dict) -> int | None:
+    useful = (review.get("usefulness") or {}).get("useful")
+    return useful if isinstance(useful, int) and not isinstance(useful, bool) else None
+
+
+def _has_photos(content: dict) -> bool | None:
+    """``None`` when the photos key is absent, so "unknown" never reads as "no photos"."""
+    photos = content.get("photos")
+    return len(photos) > 0 if isinstance(photos, list) else None
+
+
 def parse_reviews(page: dict, product_id: str) -> list[RawReview]:
     """Parse the ``webListReviews`` widget into ``RawReview``s."""
     widget = _widget(page, "webListReviews") or {}
@@ -232,6 +243,7 @@ def parse_reviews(page: dict, product_id: str) -> list[RawReview]:
     for review in raw:
         content = review.get("content") or {}
         score = content.get("score")
+        purchased = review.get("isItemPurchased")
         result.append(
             RawReview(
                 source=SOURCE,
@@ -240,6 +252,11 @@ def parse_reviews(page: dict, product_id: str) -> list[RawReview]:
                 author=_review_author(review),
                 text=_review_text(content),
                 created_at=_unix_to_date(review.get("publishedAt") or review.get("createdAt")),
+                pros=content.get("positive") or None,
+                cons=content.get("negative") or None,
+                useful=_helpful_votes(review),
+                purchased=purchased if isinstance(purchased, bool) else None,
+                has_photos=_has_photos(content),
             )
         )
     return result

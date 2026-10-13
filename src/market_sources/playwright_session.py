@@ -27,9 +27,11 @@ something page-shaped) to drive the whole state machine without a real browser.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -56,6 +58,16 @@ DEFAULT_USER_AGENT = (
 DEFAULT_VIEWPORT = {"width": 1920, "height": 1080}
 NAV_TIMEOUT_MS = 90_000
 IDLE_TIMEOUT_S = 10 * 60
+BOOTSTRAP_TIMEOUT_S = 120
+BOOTSTRAP_POLL_S = 1.5
+OK_STATUS = 200
+#: Statuses that end a navigation as "blocked" once the retries are spent.
+NAV_FAIL_STATUSES = frozenset({401, 403, 407, 429, 500, 502, 503, 504})
+#: With a ``state_path``, these mean the saved session has expired.
+SESSION_EXPIRED_STATUSES = frozenset({401, 403, 307})
+#: Sibling file (``<state_path>.ua.json``) holding the user agent the state was saved with.
+UA_SUFFIX = ".ua.json"
+STATE_FILE_MODE = 0o600  # cookies in here are credentials
 
 # "Target page, context or browser has been closed", crashes, disconnects.
 _DEAD_RE = re.compile(r"closed|crashed|disconnect", re.I)
@@ -82,6 +94,27 @@ class BrowserSessionError(RuntimeError):
     """Raised when a navigation fails in a way relaunching cannot fix."""
 
 
+class NavBlocked(BrowserSessionError):
+    """A navigation ended in a status in :data:`NAV_FAIL_STATUSES` after retries."""
+
+    def __init__(self, status: int, url: str, message: str | None = None) -> None:
+        self.status = status
+        self.url = url
+        super().__init__(message or f"HTTP {status} for {url}")
+
+
+class SessionExpired(NavBlocked):
+    """The persisted session was rejected: re-run the browser setup command."""
+
+    def __init__(self, status: int, url: str) -> None:
+        super().__init__(
+            status,
+            url,
+            f"HTTP {status} for {url}: session expired, run the setup command "
+            "(e.g. `buysmarter ozon-setup`)",
+        )
+
+
 class BrowserSession:
     """One reusable Chromium page, guarded by a lock and an idle timer."""
 
@@ -90,6 +123,10 @@ class BrowserSession:
     #: Exception type raised for unrecoverable navigations. Override in a
     #: subclass to give consumers a site-specific error without wrapping.
     error_class: type[BrowserSessionError] = BrowserSessionError
+    #: Blocked / session-expired types. Subclass both with ``error_class`` too
+    #: to keep site-specific ``except`` clauses working.
+    blocked_class: type[NavBlocked] = NavBlocked
+    expired_class: type[SessionExpired] = SessionExpired
 
     def __init__(
         self,
@@ -101,11 +138,13 @@ class BrowserSession:
         launch_args: list[str] | None = None,
         nav_timeout_ms: int = NAV_TIMEOUT_MS,
         idle_timeout_s: float = IDLE_TIMEOUT_S,
+        state_path: Path | None = None,
         page_factory: Callable[[], Awaitable[Any]] | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self.headless = headless
         self.user_agent = user_agent
+        self.state_path = state_path
         self.locale = locale
         self.viewport = dict(viewport or DEFAULT_VIEWPORT)
         self.launch_args = list(launch_args if launch_args is not None else LAUNCH_ARGS)
@@ -153,8 +192,8 @@ class BrowserSession:
                         log.debug("browser session: HTTP %d for %s; relaunching", status, url)
                         await self._shutdown()
                         continue
-                    raise self.error_class(f"HTTP {status} for {url}")
-                except self.error_class:
+                    raise self._classify(status, url)
+                except BrowserSessionError:
                     raise
                 except Exception as err:  # noqa: BLE001 — classified below
                     if self.is_dead_browser_error(err) and attempt < retries:
@@ -163,6 +202,14 @@ class BrowserSession:
                         continue
                     raise
             raise self.error_class("unreachable")  # loop always returns or raises
+
+    def _classify(self, status: int, url: str) -> BrowserSessionError:
+        """The error for a final non-200 status, once retries are spent."""
+        if self.state_path is not None and status in SESSION_EXPIRED_STATUSES:
+            return self.expired_class(status, url)
+        if status in NAV_FAIL_STATUSES:
+            return self.blocked_class(status, url)
+        return self.error_class(f"HTTP {status} for {url}")
 
     @staticmethod
     def is_dead_browser_error(err: BaseException) -> bool:
@@ -217,10 +264,66 @@ class BrowserSession:
                 headless=self.headless, args=self.launch_args
             )
             self._browser.on("disconnected", self._on_disconnect)
-            self._context = await self._browser.new_context(
+            self._context = await self._browser.new_context(**self._context_options())
+        return await self._context.new_page()
+
+    def _context_options(self) -> dict[str, Any]:
+        options: dict[str, Any] = {
+            "viewport": self.viewport,
+            "user_agent": self.user_agent,
+            "locale": self.locale,
+        }
+        if self.state_path is not None and self.state_path.exists():
+            options["storage_state"] = str(self.state_path)
+            options["user_agent"] = _saved_user_agent(self.state_path) or self.user_agent
+        return options
+
+    async def bootstrap(
+        self,
+        probe_url: str,
+        is_ok: Callable[[int], bool] = lambda status: status == OK_STATUS,
+        timeout_s: float = BOOTSTRAP_TIMEOUT_S,
+        poll_s: float = BOOTSTRAP_POLL_S,
+    ) -> bool:
+        """Open a headed browser on ``probe_url`` and save its session once it passes.
+
+        The user can solve whatever challenge the site shows in the window. Polls
+        ``probe_url`` from the page's own request context (shares its cookies)
+        until ``is_ok(status)``, then writes storage state and the user agent to
+        :attr:`state_path`. Always a fresh context, never the saved one. Returns
+        False on timeout; nothing is written then.
+        """
+        if self.state_path is None:
+            raise ValueError("bootstrap needs state_path to save the session to")
+        driver = await _playwright().async_playwright().start()
+        browser = None
+        try:
+            browser = await driver.chromium.launch(headless=False, args=self.launch_args)
+            context = await browser.new_context(
                 viewport=self.viewport, user_agent=self.user_agent, locale=self.locale
             )
-        return await self._context.new_page()
+            page = await context.new_page()
+            await page.goto(probe_url, wait_until="domcontentloaded", timeout=self.nav_timeout_ms)
+            waited = 0.0
+            while not is_ok((await page.request.get(probe_url)).status):
+                if waited >= timeout_s:
+                    log.warning("browser session: bootstrap timed out for %s", probe_url)
+                    return False
+                await self._sleep(poll_s)
+                waited += poll_s
+            await self._save_state(context)
+            return True
+        finally:
+            if browser is not None:
+                await _close_quietly(browser)
+            await _stop_quietly(driver)
+
+    async def _save_state(self, context: Any) -> None:
+        assert self.state_path is not None
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        await context.storage_state(path=str(self.state_path))
+        self.state_path.chmod(STATE_FILE_MODE)
+        _ua_path(self.state_path).write_text(json.dumps({"user_agent": self.user_agent}))
 
     async def _goto(self, url: str) -> int:
         """``page.goto`` and return the HTTP status (``-1`` when no response object)."""
@@ -277,6 +380,19 @@ class BrowserSession:
         self._context = self._browser = self._pw = None
 
 
+def _ua_path(state_path: Path) -> Path:
+    return state_path.with_name(state_path.name + UA_SUFFIX)
+
+
+def _saved_user_agent(state_path: Path) -> str | None:
+    """The user agent saved next to ``state_path``, or None when absent or unreadable."""
+    try:
+        return json.loads(_ua_path(state_path).read_text())["user_agent"]
+    except (OSError, ValueError, KeyError, TypeError) as err:
+        log.debug("browser session: no usable saved user agent: %s", err)
+        return None
+
+
 async def _body_text(page: Any) -> str:
     return await page.evaluate("() => document.body.innerText")
 
@@ -300,6 +416,9 @@ __all__ = [
     "IDLE_TIMEOUT_S",
     "LAUNCH_ARGS",
     "NAV_TIMEOUT_MS",
+    "NAV_FAIL_STATUSES",
     "BrowserSession",
     "BrowserSessionError",
+    "NavBlocked",
+    "SessionExpired",
 ]

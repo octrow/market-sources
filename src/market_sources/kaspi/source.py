@@ -1,8 +1,14 @@
 """``ProductSource`` implementation for Kaspi.kz."""
 
-from market_sources.base import RawOffer, RawProduct, RawReview
+from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
 from market_sources.kaspi.client import DEFAULT_CITY, KaspiClient
-from market_sources.kaspi.parse import parse_offers, parse_reviews, parse_search, parse_specs
+from market_sources.kaspi.parse import (
+    parse_offers,
+    parse_review_stats,
+    parse_reviews,
+    parse_search,
+    parse_specs,
+)
 
 
 class KaspiSource:
@@ -27,8 +33,15 @@ class KaspiSource:
 
     async def reviews(self, product_id: str) -> list[RawReview]:
         """Return user reviews for ``product_id``."""
+        reviews, _stats = await self.reviews_with_stats(product_id)
+        return reviews
+
+    async def reviews_with_stats(
+        self, product_id: str
+    ) -> tuple[list[RawReview], RawReviewStats | None]:
+        """Return reviews and aggregate stats for ``product_id`` from one API call."""
         payload = await self._client.reviews(product_id)
-        return parse_reviews(payload, product_id)
+        return parse_reviews(payload, product_id), parse_review_stats(payload, product_id)
 
     async def specs(self, product_id: str) -> dict[str, str]:
         """Return raw specification key/value pairs for ``product_id``."""

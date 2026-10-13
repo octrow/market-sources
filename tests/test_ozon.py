@@ -390,3 +390,53 @@ async def test_city_is_accepted_for_parity_and_ignored():
     stub = StubBrowser(page_with(tileGridDesktop={"items": []}))
     await OzonSource(browser=stub).search("x", city="750000000")
     assert stub.paths == ["/search/?text=x&from_global=true"]
+
+
+# ---------------------------------------------------- review pros/cons/votes/photos
+
+
+def test_review_pros_cons_usefulness_purchase_and_photos_are_mapped():
+    page = page_with(
+        webListReviews={
+            "reviews": [
+                {
+                    "content": {
+                        "score": 5,
+                        "positive": "Быстрый",
+                        "negative": "Греется",
+                        "photos": [{"url": "https://img.test/1.jpg"}],
+                    },
+                    "usefulness": {"useful": 7},
+                    "isItemPurchased": True,
+                }
+            ]
+        }
+    )
+    [review] = parse_reviews(page, "1")
+    assert (review.pros, review.cons, review.useful, review.purchased, review.has_photos) == (
+        "Быстрый",
+        "Греется",
+        7,
+        True,
+        True,
+    )
+
+
+def test_an_empty_photo_list_means_no_photos_and_absent_keys_stay_unknown():
+    page = page_with(
+        webListReviews={
+            "reviews": [
+                {"content": {"photos": []}},
+                {"content": {}},
+            ]
+        }
+    )
+    empty, missing = parse_reviews(page, "1")
+    assert empty.has_photos is False
+    assert missing.has_photos is None
+    assert (missing.pros, missing.cons, missing.useful, missing.purchased) == (
+        None,
+        None,
+        None,
+        None,
+    )

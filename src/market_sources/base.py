@@ -7,7 +7,7 @@ returning raw, source-shaped data. Normalization to canonical models is the
 
 from typing import Protocol, runtime_checkable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RawProduct(BaseModel):
@@ -48,6 +48,9 @@ class RawOffer(BaseModel):
     merchant_id: str | None = None
     merchant_rating: float | None = None
     merchant_review_count: int | None = None
+    # ISO date (YYYY-MM-DD) the delivery lands on, in Asia/Almaty.
+    delivery_date: str | None = None
+    delivery_cost: float | None = None
 
 
 class RawReview(BaseModel):
@@ -59,6 +62,24 @@ class RawReview(BaseModel):
     author: str | None = None
     text: str = ""
     created_at: str | None = None
+    # Unknown stays None: a missing field must never read as "no" or "zero".
+    pros: str | None = None
+    cons: str | None = None
+    useful: int | None = None  # helpful votes
+    purchased: bool | None = None  # verified purchase
+    has_photos: bool | None = None
+
+
+class RawReviewStats(BaseModel):
+    """Aggregate review numbers for a product, as the source reports them."""
+
+    source: str
+    product_id: str
+    rating_counts: dict[int, int] = Field(default_factory=dict)  # stars 1-5 -> count
+    total: int | None = None
+    negative_count: int | None = None
+    with_photos_count: int | None = None
+    average_rating: float | None = None
 
 
 @runtime_checkable
@@ -84,4 +105,4 @@ class ProductSource(Protocol):
         ...
 
 
-__all__ = ["ProductSource", "RawOffer", "RawProduct", "RawReview"]
+__all__ = ["ProductSource", "RawOffer", "RawProduct", "RawReview", "RawReviewStats"]

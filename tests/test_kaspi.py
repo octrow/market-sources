@@ -13,7 +13,14 @@ import pytest
 from fakes import LowRng, RecordingSleep, ScriptedTransport
 
 from market_sources.kaspi.client import BASE_URL, DEFAULT_CITY, USER_AGENT, KaspiClient
-from market_sources.kaspi.parse import parse_offers, parse_reviews, parse_search, parse_specs
+from market_sources.base import RawReviewStats
+from market_sources.kaspi.parse import (
+    parse_offers,
+    parse_review_stats,
+    parse_reviews,
+    parse_search,
+    parse_specs,
+)
 from market_sources.kaspi.source import KaspiSource
 from market_sources.polite_http import PoliteClient
 
@@ -405,3 +412,189 @@ def test_source_passes_proxy_through_to_the_default_client(monkeypatch):
     monkeypatch.delenv("KASPI_PROXY", raising=False)
     source = KaspiSource(proxy="http://p.test:3128")
     assert source._client.http.proxy == "http://p.test:3128"
+
+
+# ------------------------------------------------------- review pros/cons/photos
+
+
+def test_plus_and_minus_are_kept_as_separate_fields_and_still_merged_into_text():
+    comment = {"plus": "Быстрый", "minus": "Дорогой", "text": "Ок"}
+    [review] = parse_reviews({"data": [{"comment": comment}]}, "1")
+    assert (review.pros, review.cons) == ("Быстрый", "Дорогой")
+    assert review.text == "Быстрый Дорогой Ок"
+
+
+def test_empty_plus_minus_and_no_photo_key_stay_none():
+    [review] = parse_reviews({"data": [{"comment": {"plus": "", "text": "Ок"}}]}, "1")
+    assert (review.pros, review.cons, review.has_photos) == (None, None, None)
+
+
+# -------------------------------------------------------------- parse_review_stats
+
+
+def stats_payload(**overrides) -> dict:
+    base = {
+        "summary": {
+            "global": 4.7,
+            "statistic": [{"rate": 5, "count": 80}, {"rate": 1, "count": 3}],
+        },
+        "groupSummary": [
+            {"id": "ALL", "total": 100},
+            {"id": "COMMENT", "total": 60},
+            {"id": "PICTURE", "total": 12},
+            {"id": "POSITIVE", "total": 90},
+            {"id": "NEGATIVE", "total": 4},
+        ],
+    }
+    base.update(overrides)
+    return base
+
+
+def test_parse_review_stats_maps_summary_and_group_totals():
+    stats = parse_review_stats(stats_payload(), "123456")
+    assert stats == RawReviewStats(
+        source="kaspi",
+        product_id="123456",
+        rating_counts={5: 80, 1: 3},
+        total=100,
+        negative_count=4,
+        with_photos_count=12,
+        average_rating=4.7,
+    )
+
+
+def test_parse_review_stats_is_none_without_summary_or_group_summary():
+    assert parse_review_stats({"data": []}, "1") is None
+
+
+def test_parse_review_stats_skips_malformed_entries_instead_of_raising():
+    payload = {
+        "summary": {
+            "global": "n/a",
+            "statistic": [{"rate": "5", "count": 2}, {"rate": 4}, "junk", {"rate": 3, "count": 1}],
+        },
+        "groupSummary": [{"id": "ALL", "total": "many"}, {"id": "NEGATIVE", "total": 2}, "junk"],
+    }
+    stats = parse_review_stats(payload, "1")
+    assert stats.rating_counts == {3: 1}
+    assert (stats.average_rating, stats.total, stats.negative_count) == (None, None, 2)
+
+
+# ------------------------------------------------------------- offer delivery
+
+
+def offer_with_options(delivery_type=None, **options) -> dict:
+    payload = {"merchantName": "Alser", "price": 100, "deliveryOptions": options}
+    if delivery_type is not None:
+        payload["deliveryType"] = delivery_type
+    return payload
+
+
+def test_a_naive_datetime_is_utc_so_late_evening_utc_is_next_day_in_almaty():
+    offer_payload = offer_with_options(
+        "EXPRESS", EXPRESS={"delivery": "2026-10-13T20:00:00", "deliveryCost": 1500}
+    )
+    [offer] = parse_offers({"offers": [offer_payload]}, "1")
+    assert offer.delivery_date == "2026-10-14"
+
+
+def test_a_utc_morning_stays_on_the_same_almaty_day():
+    [offer] = parse_offers(
+        {
+            "offers": [
+                offer_with_options("EXPRESS", EXPRESS={"delivery": "2026-10-13T10:00:00"})
+            ]
+        },
+        "1",
+    )
+    assert offer.delivery_date == "2026-10-13"
+
+
+def test_a_trailing_z_is_utc_too():
+    [offer] = parse_offers(
+        {"offers": [offer_with_options("EXPRESS", EXPRESS={"delivery": "2026-10-13T20:00:00Z"})]},
+        "1",
+    )
+    assert offer.delivery_date == "2026-10-14"
+
+
+def test_the_delivery_type_selects_its_option_for_date_and_cost():
+    [offer] = parse_offers(
+        {
+            "offers": [
+                offer_with_options(
+                    "TO_DOOR",
+                    EXPRESS={"delivery": "2026-10-13T10:00:00", "deliveryCost": 1500},
+                    TO_DOOR={"delivery": "2026-10-20T10:00:00", "deliveryCost": 0},
+                )
+            ]
+        },
+        "1",
+    )
+    assert (offer.delivery_date, offer.delivery_cost) == ("2026-10-20", 0.0)
+
+
+def test_without_a_matching_type_express_wins_then_to_door_then_the_first_option():
+    express_first = offer_with_options(
+        "PICKUP",
+        TO_DOOR={"delivery": "2026-10-20T10:00:00", "deliveryCost": 500},
+        EXPRESS={"delivery": "2026-10-13T10:00:00", "deliveryCost": 1500},
+    )
+    to_door_only = offer_with_options(
+        None,
+        PICKUP={"delivery": "2026-10-15T10:00:00", "deliveryCost": 0},
+        TO_DOOR={"delivery": "2026-10-20T10:00:00", "deliveryCost": 500},
+    )
+    first_only = offer_with_options(
+        None, PICKUP={"delivery": "2026-10-15T10:00:00", "deliveryCost": 0}
+    )
+    picked = parse_offers(
+        {"offers": [express_first, to_door_only, first_only]}, "1"
+    )
+    assert [o.delivery_cost for o in picked] == [1500.0, 500.0, 0.0]
+    assert [o.delivery_date for o in picked] == ["2026-10-13", "2026-10-20", "2026-10-15"]
+
+
+def test_missing_delivery_options_give_no_date_or_cost():
+    [offer] = parse_offers({"offers": [{"price": 100, "deliveryDuration": "Сегодня"}]}, "1")
+    assert (offer.delivery_date, offer.delivery_cost, offer.delivery) == (
+        None,
+        None,
+        "Сегодня",
+    )
+
+
+def test_garbage_delivery_date_is_none_but_a_valid_cost_is_kept():
+    [offer] = parse_offers(
+        {
+            "offers": [
+                offer_with_options(
+                    "EXPRESS", EXPRESS={"delivery": "soon", "deliveryCost": "1500"}
+                )
+            ]
+        },
+        "1",
+    )
+    assert (offer.delivery_date, offer.delivery_cost) == (None, 1500.0)
+
+
+# ------------------------------------------------------------- source reviews_with_stats
+
+
+async def test_reviews_with_stats_makes_one_call_and_parses_both():
+    stub = StubKaspiClient()
+
+    async def reviews(product_id):
+        stub.calls.append(("reviews", product_id))
+        return stats_payload(data=[{"rating": 5}])
+
+    stub.reviews = reviews
+    reviews_list, stats = await KaspiSource(client=stub).reviews_with_stats("123456")
+    assert [r.rating for r in reviews_list] == [5.0]
+    assert stats.total == 100
+    assert [c for c in stub.calls if c[0] == "reviews"] == [("reviews", "123456")]
+
+
+async def test_reviews_still_returns_only_the_list():
+    source = KaspiSource(client=StubKaspiClient())
+    assert (await source.reviews("123456"))[0].rating == 5.0
