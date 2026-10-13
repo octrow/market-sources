@@ -52,9 +52,7 @@ class OlxClient:
             timeout_s=TIMEOUT_S,
             max_retries=MAX_RETRIES,
             proxy=proxy,
-            transport=ImpersonateTransport(proxy=proxy)
-            if impersonate.available()
-            else None,
+            transport=ImpersonateTransport(proxy=proxy) if impersonate.available() else None,
         )
 
     async def search(
@@ -63,11 +61,12 @@ class OlxClient:
         offset: int = 0,
         limit: int = DEFAULT_LIMIT,
         budget: int | None = None,
+        min_price: int | None = None,
     ) -> Any:
         """Call ``GET /api/v1/offers/`` (query, city filter) and return JSON.
 
-        When ``budget`` is set, adds ``filter_float_price:to`` so OLX filters to
-        listings at or below the budget server-side.
+        ``budget`` / ``min_price`` become ``filter_float_price:to`` / ``:from``:
+        OLX filters server-side, both bounds inclusive.
         """
         params: dict[str, object] = {
             "offset": offset,
@@ -75,6 +74,8 @@ class OlxClient:
             "query": query,
             "city_id": self.city_id,
         }
+        if min_price is not None:
+            params["filter_float_price:from"] = min_price
         if budget is not None:
             params["filter_float_price:to"] = budget
         return await self.http.get_json(f"{BASE_URL}/api/v1/offers/", params=params)

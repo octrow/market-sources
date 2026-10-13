@@ -7,7 +7,7 @@ from fakes import LowRng, RecordingSleep, ScriptedTransport
 
 from market_sources.olx.client import BASE_URL, DEFAULT_CITY_ID, USER_AGENT, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
-from market_sources.olx.source import OlxSource
+from market_sources.olx.source import OLX_RESULT_CAP, OlxSource
 from market_sources.polite_http import PoliteClient
 
 
@@ -79,7 +79,11 @@ def test_all_image_urls_preserved():
             "data": [
                 listing(
                     photos=[
-                        {"link": "https://i.test/a-{width}x{height}.jpg", "width": 1080, "height": 720},
+                        {
+                            "link": "https://i.test/a-{width}x{height}.jpg",
+                            "width": 1080,
+                            "height": 720,
+                        },
                         {"link": "https://i.test/b-{width}x{height}.jpg"},
                         {"width": 10},  # no link — skipped, not a placeholder
                     ]
@@ -219,7 +223,7 @@ class StubOlxClient:
         self.searches: list[dict] = []
         self.details: list[str] = []
 
-    async def search(self, query, offset=0, limit=50, budget=None):
+    async def search(self, query, offset=0, limit=50, budget=None, min_price=None):
         self.searches.append({"query": query, "offset": offset, "budget": budget})
         index = min(len(self.searches) - 1, len(self.pages) - 1)
         return self.pages[index]
@@ -287,3 +291,70 @@ def test_a_different_city_builds_a_separate_client():
     other = source._client_for_city("2")
     assert isinstance(other, OlxClient)
     assert other.city_id == "2"
+
+
+async def test_a_min_price_becomes_a_server_side_lower_bound():
+    client, transport = olx_client()
+    await client.search("iphone", min_price=100000, budget=250000)
+    params = dict(transport.requests[0].url.params)
+    assert params["filter_float_price:from"] == "100000"
+    assert params["filter_float_price:to"] == "250000"
+
+
+# ------------------------------------------------------------------ search_all
+
+
+class CatalogueOlxClient:
+    """Fake OLX: filters a catalogue by price and caps every search at 1000 like the real one."""
+
+    def __init__(self, prices: list[int]) -> None:
+        self.city_id = DEFAULT_CITY_ID
+        self.catalogue = [listing(id=i, params=price_param(p)) for i, p in enumerate(prices, 1)]
+        self.searches: list[tuple[int | None, int | None, int]] = []
+
+    async def search(self, query, offset=0, limit=50, budget=None, min_price=None):
+        self.searches.append((min_price, budget, offset))
+        lo, hi = min_price or 0, budget if budget is not None else float("inf")
+        hits = [o for o in self.catalogue if lo <= o["params"][0]["value"]["value"] <= hi]
+        visible = hits[:OLX_RESULT_CAP]
+        return {
+            "data": visible[offset : offset + limit],
+            "metadata": {"total_elements": len(visible)},
+        }
+
+    async def aclose(self):
+        pass
+
+
+def price_param(price: int) -> list[dict]:
+    return [{"key": "price", "value": {"value": price}}]
+
+
+async def test_search_all_splits_the_price_range_until_every_slice_is_under_the_cap():
+    stub = CatalogueOlxClient([100_000 + i * 100 for i in range(2500)])  # 100k..349.9k
+    products = await OlxSource(client=stub).search_all("телефон", 100_000, 400_000)
+    assert len(products) == 2500
+    assert len({p.product_id for p in products}) == 2500
+
+
+async def test_search_all_does_not_split_a_range_under_the_cap():
+    stub = CatalogueOlxClient([150_000] * 120)
+    products = await OlxSource(client=stub).search_all("телефон", 100_000, 200_000)
+    assert len(products) == 120
+    assert [s[2] for s in stub.searches] == [0, 50, 100]  # the probe is page one
+
+
+async def test_search_all_stops_splitting_at_the_minimum_slice_width():
+    stub = CatalogueOlxClient([150_000] * 1500)  # one price, can never get under the cap
+    products = await OlxSource(client=stub).search_all("телефон", 149_500, 150_500)
+    assert len(products) == OLX_RESULT_CAP
+    assert all(offset < OLX_RESULT_CAP for _, _, offset in stub.searches)
+
+
+async def test_search_all_drops_listings_repeated_across_pages():
+    # promoted ads come back on every page of a search
+    page = {"data": [listing(id=1), listing(id=2)], "metadata": {"total_elements": 100}}
+    stub = StubOlxClient(pages=[page])
+    products = await OlxSource(client=stub).search_all("x", 0, 10)
+    assert [p.product_id for p in products] == ["1", "2"]
+    assert [s["offset"] for s in stub.searches] == [0, 50]

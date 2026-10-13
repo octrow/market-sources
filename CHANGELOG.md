@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `OlxSource.search_all(query, min_price, max_price)`: every listing in a price range. OLX caps a search at 1000
+  results, so the range is halved until each slice fits and every page of every slice is fetched (a live
+  100k–160k ₸ run for "телефон" returned 2180 listings in 40 s).
+- `OlxClient.search(min_price=...)`: server-side lower price bound (`filter_float_price:from`).
+
 ## [0.1.1] - 2026-10-13
 
 ### Changed

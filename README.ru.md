@@ -68,7 +68,7 @@ Python 3.12+. Зависимости — `httpx` и `pydantic`. Необязат
 | источник | откуда данные | что нужно | заметки |
 |---|---|---|---|
 | `KaspiSource` | внутренний JSON API Kaspi через `PoliteClient` | базовая установка | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; прокси через переменную `KASPI_PROXY` |
-| `OlxSource` | публичный JSON API OLX | extra `impersonate` | CloudFront отбивает TLS-отпечаток httpx; если стоит `curl_cffi`, клиент сам притворяется Chrome (в запуске выше поиск занял 1.9 с и вернул 63 объявления) |
+| `OlxSource` | публичный JSON API OLX | extra `impersonate` | CloudFront отбивает TLS-отпечаток httpx; если стоит `curl_cffi`, клиент сам притворяется Chrome (в запуске выше поиск занял 1.9 с и вернул 63 объявления). OLX отдаёт не больше 1000 результатов на поиск; `search_all(query, min_price, max_price)` делит ценовой диапазон, пока каждый кусок не влезет, и выкачивает все страницы (2180 объявлений за 100–160k ₸ за 40 с) |
 | `OzonSource` | composer API Ozon, читается через настоящий браузер | extra `browser` | сессия сохраняется в `OZON_STATE_PATH` (по умолчанию `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` меняет хост |
 
 Все источники реализуют один протокол, так что вызывающему коду всё равно, с каким сайтом он работает:

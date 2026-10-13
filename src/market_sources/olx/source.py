@@ -1,16 +1,22 @@
 """``ProductSource`` implementation for OLX.kz (used/new classifieds)."""
 
+import asyncio
 import logging
 from typing import Any
 
 from market_sources.base import RawOffer, RawProduct, RawReview
-from market_sources.olx.client import DEFAULT_CITY_ID, OlxClient
+from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
 
 logger = logging.getLogger(__name__)
 
 # We aim for ~50 listings; OLX caps a single page lower, so paginate once.
 TARGET_RESULTS = 50
+# OLX never shows more than 1000 results per search: total_elements stops at 1000
+# and an offset past it is a 400 (checked 2026-10-13).
+OLX_RESULT_CAP = 1000
+# A narrower price range than this is not split further, even if it is still capped.
+MIN_PRICE_SLICE_KZT = 1000
 
 
 class OlxSource:
@@ -63,6 +69,54 @@ class OlxSource:
         )
         return products
 
+    async def search_all(
+        self, query: str, min_price: int, max_price: int, city: str | None = None
+    ) -> list[RawProduct]:
+        """Every listing for ``query`` priced within [min_price, max_price].
+
+        OLX caps each search at :data:`OLX_RESULT_CAP` results, so the price range is
+        halved until each slice fits, then every page of every slice is fetched.
+        Listings repeated across pages (promoted ads) are kept once.
+        """
+        client = self._client_for_city(city)
+        slices = await self._price_slices(client, query, min_price, max_price)
+        pages = [first for _, _, first in slices]
+        pages += await asyncio.gather(
+            *(
+                client.search(query, offset=offset, budget=hi, min_price=lo)
+                for lo, hi, first in slices
+                for offset in range(DEFAULT_LIMIT, _visible_total(first), DEFAULT_LIMIT)
+            )
+        )
+        products: dict[str, RawProduct] = {}
+        for page in pages:
+            self._cache_offers(page)
+            for product in parse_search(page):
+                products.setdefault(product.product_id, product)
+        logger.info(
+            "OLX fetched %d listings for %r in %d price slices (%d-%d)",
+            len(products),
+            query,
+            len(slices),
+            min_price,
+            max_price,
+        )
+        return list(products.values())
+
+    async def _price_slices(
+        self, client: OlxClient, query: str, lo: int, hi: int
+    ) -> list[tuple[int, int, dict]]:
+        """Split [lo, hi] until each slice is under the cap; returns (lo, hi, first page)."""
+        first = await client.search(query, budget=hi, min_price=lo)
+        total = (first.get("metadata") or {}).get("total_elements") or 0
+        if total < OLX_RESULT_CAP or hi - lo <= MIN_PRICE_SLICE_KZT:
+            return [(lo, hi, first)]
+        mid = (lo + hi) // 2
+        logger.info("OLX %d-%d hits the %d-result cap, splitting at %d", lo, hi, total, mid)
+        return await self._price_slices(client, query, lo, mid) + await self._price_slices(
+            client, query, mid + 1, hi
+        )
+
     async def offers(self, product_id: str) -> list[RawOffer]:
         """Return the single listing offer for ``product_id`` (empty if no price)."""
         offer = await self._offer(product_id)
@@ -104,4 +158,9 @@ class OlxSource:
         return self._city_clients[city]
 
 
-__all__ = ["DEFAULT_CITY_ID", "TARGET_RESULTS", "OlxSource"]
+def _visible_total(payload: dict) -> int:
+    total = (payload.get("metadata") or {}).get("total_elements") or 0
+    return min(total, OLX_RESULT_CAP)
+
+
+__all__ = ["DEFAULT_CITY_ID", "OLX_RESULT_CAP", "TARGET_RESULTS", "OlxSource"]
