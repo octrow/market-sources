@@ -9,10 +9,12 @@
   ``browser`` extra to *run*, never to import).
 * :mod:`market_sources.kaspi` / ``.olx`` (JSON APIs over ``PoliteClient``) and
   :mod:`market_sources.ozon` (composer-api over ``BrowserSession``).
+* :mod:`market_sources.kimovil` — phone specs by marketplace title (``kimovil`` extra).
 """
 
 from .base import ProductSource, RawOffer, RawProduct, RawReview, RawReviewStats
 from .kaspi.source import KaspiSource
+from .kimovil.source import KimovilSource
 from .olx.source import OlxSource
 from .ozon.source import OzonSource
 from .playwright_session import BrowserSession, BrowserSessionError
@@ -22,6 +24,7 @@ __all__ = [
     "BrowserSession",
     "BrowserSessionError",
     "KaspiSource",
+    "KimovilSource",
     "OlxSource",
     "OzonSource",
     "PoliteClient",

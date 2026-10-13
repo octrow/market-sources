@@ -70,6 +70,7 @@ Python 3.12+. Зависимости — `httpx` и `pydantic`. Необязат
 | `KaspiSource` | внутренний JSON API Kaspi через `PoliteClient` | базовая установка | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; прокси через переменную `KASPI_PROXY` |
 | `OlxSource` | публичный JSON API OLX | extra `impersonate` | CloudFront отбивает TLS-отпечаток httpx; если стоит `curl_cffi`, клиент сам притворяется Chrome (в запуске выше поиск занял 1.9 с и вернул 63 объявления). OLX отдаёт не больше 1000 результатов на поиск; `search_all(query, min_price, max_price)` делит ценовой диапазон, пока каждый кусок не влезет, и выкачивает все страницы (2180 объявлений за 100–160k ₸ за 40 с) |
 | `OzonSource` | composer API Ozon, читается через настоящий браузер | extra `browser` | сессия сохраняется в `OZON_STATE_PATH` (по умолчанию `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` меняет хост |
+| `KimovilSource` | JSON автодополнения kimovil.com + серверная страница характеристик | extra `kimovil` | не `ProductSource`, а справочник характеристик. `lookup(title)` превращает заголовок с маркетплейса («Смартфон Samsung Galaxy S24 Ultra 12/256GB») в характеристики модели и индекс Kimovil (0–100). Cloudflare ставит челлендж headless Chromium, curl_cffi получает страницу |
 
 Все источники реализуют один протокол, так что вызывающему коду всё равно, с каким сайтом он работает:
 
@@ -92,6 +93,7 @@ class ProductSource(Protocol):
 | `market_sources.kaspi` | `KaspiSource` / `KaspiClient` / чистые `parse_*`: внутренний JSON API |
 | `market_sources.olx` | `OlxSource` / `OlxClient` / чистые `parse_*`: публичный JSON API |
 | `market_sources.ozon` | `OzonSource` / `OzonBrowser` / чистые `parse_*`: composer API через браузер |
+| `market_sources.kimovil` | `KimovilSource` / `KimovilClient` / чистые `model_query`, `best_match`, `parse_phone` |
 
 ## Чем это отличается от скрипта на httpx или Scrapy
 

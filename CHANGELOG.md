@@ -13,6 +13,10 @@ All notable changes to this project are documented here. The format follows
 - `parse_specs` (and so `OlxSource.specs`) returns the ad text as plain text under `"description"`, so a
   consumer can read the seller's own words (defects, repairs) without a detail call.
 - `OlxClient.search(min_price=...)`: server-side lower price bound (`filter_float_price:from`).
+- `KimovilSource.lookup(title)` (new `kimovil` extra: curl_cffi + selectolax): a marketplace title → the phone's
+  Kimovil specs and index. Resolves the model through Kimovil's autocomplete JSON, picks the hit whose name names
+  nothing the title does not ("iPhone 13" never becomes the Pro Max), retries without the brand word and with
+  trailing words trimmed.
 
 ## [0.1.1] - 2026-10-13
 
