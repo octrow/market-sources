@@ -24,6 +24,8 @@ classifiers = [
 dependencies = [
     "httpx>=0.27",
     "pydantic>=2",
+    # Windows ships no tz database; kaspi.parse needs Asia/Almaty.
+    "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
