@@ -8,6 +8,8 @@ has no such fields they are surfaced via ``parse_specs`` under the ``"condition"
 and ``"seller_type"`` keys.
 """
 
+import html
+import re
 from typing import Any
 
 from market_sources.base import RawOffer, RawProduct
@@ -68,6 +70,13 @@ def _seller_type(offer: dict) -> str:
     return "business" if offer.get("business") else "private"
 
 
+def _description(offer: dict) -> str | None:
+    """The ad text without markup: OLX sends it as HTML with ``<br />`` line breaks."""
+    text = html.unescape(re.sub(r"<[^>]+>", "", offer.get("description") or ""))
+    lines = (" ".join(line.split()) for line in text.splitlines())
+    return "\n".join(line for line in lines if line) or None
+
+
 def _offer_to_product(offer: dict) -> RawProduct | None:
     offer_id = offer.get("id")
     title = offer.get("title")
@@ -119,7 +128,7 @@ def parse_offer(offer: dict) -> list[RawOffer]:
 
 
 def parse_specs(offer: dict) -> dict[str, str]:
-    """Extract condition + seller type (+ other select params) as a flat dict."""
+    """Extract condition, seller type, city and the ad text as a flat dict."""
     specs: dict[str, str] = {}
     condition = _condition(offer)
     if condition:
@@ -128,6 +137,9 @@ def parse_specs(offer: dict) -> dict[str, str]:
     city = _city(offer)
     if city:
         specs["city"] = city
+    description = _description(offer)
+    if description:
+        specs["description"] = description
     return specs
 
 

@@ -136,6 +136,15 @@ def test_parse_specs_surfaces_condition_seller_type_and_city():
     }
 
 
+def test_parse_specs_carries_the_description_as_plain_text():
+    raw = listing(description="Трещина на экране<br />\nбатарея &laquo;держит&raquo;  день")
+    assert parse_specs(raw)["description"] == "Трещина на экране\nбатарея «держит» день"
+
+
+def test_a_blank_description_is_left_out():
+    assert "description" not in parse_specs(listing(description=" <br /> "))
+
+
 def test_a_state_param_without_a_label_falls_back_to_the_key():
     specs = parse_specs(listing(params=[{"key": "state", "value": {"key": "new"}}]))
     assert specs["condition"] == "new"
