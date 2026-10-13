@@ -33,7 +33,7 @@ from market_sources.playwright_session import (
 BASE_URL = "https://www.ozon.kz"
 BASE_URL_ENV_VAR = "OZON_BASE_URL"
 STATE_PATH_ENV_VAR = "OZON_STATE_PATH"
-DEFAULT_STATE_PATH = Path.home() / ".config" / "buysmarter" / "ozon_state.json"
+DEFAULT_STATE_PATH = Path.home() / ".config" / "market_sources" / "ozon_state.json"
 CHALLENGE_WAIT_MS = 15000  # let the JS challenge set cookies on first home load
 
 # Only challenge-page phrases: a bare "доступ" also matches "Доступные цены…".

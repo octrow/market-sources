@@ -66,7 +66,7 @@ Python 3.12+. Runtime dependencies are `httpx` and `pydantic`. Optional extras a
 |---|---|---|---|
 | `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy |
 | `OlxSource` | OLX's public JSON API | `impersonate` extra | CloudFront rejects httpx's TLS fingerprint; with `curl_cffi` installed the client impersonates Chrome automatically (a search took 1.9 s and returned 63 listings in the run above) |
-| `OzonSource` | Ozon's composer API, read through a real browser | `browser` extra | session saved to `OZON_STATE_PATH` (default `~/.config/buysmarter/ozon_state.json`); `OZON_BASE_URL` overrides the host |
+| `OzonSource` | Ozon's composer API, read through a real browser | `browser` extra | session saved to `OZON_STATE_PATH` (default `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` overrides the host |
 
 Every source implements the same protocol, so consumer code doesn't care which site it talks to:
 

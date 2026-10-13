@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- The default Ozon session file moved from `~/.config/buysmarter/ozon_state.json` to
+  `~/.config/market_sources/ozon_state.json`. Move the old file (and its `.ua.json` sibling) or set `OZON_STATE_PATH`
+  to keep a saved session.
+
 ## [0.1.0] - 2026-10-13
 
 First public release.
