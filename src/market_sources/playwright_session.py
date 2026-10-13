@@ -104,14 +104,14 @@ class NavBlocked(BrowserSessionError):
 
 
 class SessionExpired(NavBlocked):
-    """The persisted session was rejected: re-run the browser setup command."""
+    """The persisted session was rejected: refresh it with :meth:`BrowserSession.bootstrap`."""
 
     def __init__(self, status: int, url: str) -> None:
         super().__init__(
             status,
             url,
-            f"HTTP {status} for {url}: session expired, run the setup command "
-            "(e.g. `buysmarter ozon-setup`)",
+            f"HTTP {status} for {url}: saved browser session expired; "
+            "refresh it with BrowserSession.bootstrap() or delete the state file",
         )
 
 

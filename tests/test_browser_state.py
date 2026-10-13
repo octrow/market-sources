@@ -227,7 +227,7 @@ async def test_rejected_status_with_state_path_is_session_expired(tmp_path, stat
         idle_timeout_s=0,
         state_path=tmp_path / "state.json",
     )
-    with pytest.raises(SessionExpired, match="setup command") as info:
+    with pytest.raises(SessionExpired, match="bootstrap") as info:
         await sess.fetch_text("https://x.test/")
     assert info.value.status == status
 

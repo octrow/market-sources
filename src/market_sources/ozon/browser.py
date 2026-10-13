@@ -55,7 +55,7 @@ class OzonBlocked(NavBlocked, OzonError):
 
 
 class OzonSessionExpired(SessionExpired, OzonBlocked):
-    """The saved Ozon session was rejected: run ``buysmarter ozon-setup``."""
+    """The saved Ozon session was rejected: refresh it with ``OzonBrowser.bootstrap``."""
 
 
 class OzonBrowser(BrowserSession):

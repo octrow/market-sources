@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows
 - The default Ozon session file moved from `~/.config/buysmarter/ozon_state.json` to
   `~/.config/market_sources/ozon_state.json`. Move the old file (and its `.ua.json` sibling) or set `OZON_STATE_PATH`
   to keep a saved session.
+- The session-expired error now points at `BrowserSession.bootstrap()` instead of a command from another project.
 
 ## [0.1.0] - 2026-10-13
 
