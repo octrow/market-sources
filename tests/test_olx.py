@@ -141,6 +141,13 @@ def test_parse_specs_carries_the_description_as_plain_text():
     assert parse_specs(raw)["description"] == "Трещина на экране\nбатарея «держит» день"
 
 
+def test_a_line_break_tag_alone_still_separates_words():
+    assert (
+        parse_specs(listing(description="треснут<br>скол<b>ов</b>"))["description"]
+        == "треснут\nсколов"
+    )
+
+
 def test_a_blank_description_is_left_out():
     assert "description" not in parse_specs(listing(description=" <br /> "))
 

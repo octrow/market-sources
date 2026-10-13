@@ -72,7 +72,8 @@ def _seller_type(offer: dict) -> str:
 
 def _description(offer: dict) -> str | None:
     """The ad text without markup: OLX sends it as HTML with ``<br />`` line breaks."""
-    text = html.unescape(re.sub(r"<[^>]+>", "", offer.get("description") or ""))
+    raw = re.sub(r"<br\s*/?>", "\n", offer.get("description") or "", flags=re.IGNORECASE)
+    text = html.unescape(re.sub(r"<[^>]+>", "", raw))
     lines = (" ".join(line.split()) for line in text.splitlines())
     return "\n".join(line for line in lines if line) or None
 
