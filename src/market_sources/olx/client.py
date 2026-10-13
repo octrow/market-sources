@@ -1,8 +1,9 @@
 """Async client for the OLX.kz public JSON API.
 
-OLX.kz exposes the same REST API its own frontend uses: no anti-bot gate, plain
-browser headers are enough for 200s — unlike Kaspi there is no referer
-requirement. Gentle by default (semaphore of 2 + 0.5–1.5 s jittered delay) to
+OLX.kz exposes the same REST API its own frontend uses, behind a CloudFront WAF
+that fingerprints the TLS handshake: httpx gets 403 even with browser headers
+(2026-10-13), so requests go through :class:`ImpersonateTransport` (curl_cffi)
+when the ``impersonate`` extra is installed. No referer requirement. Gentle by default (semaphore of 2 + 0.5–1.5 s jittered delay) to
 stay a good citizen; datacenter IPs are untested and may need a proxy later.
 
 All pacing/headers/retry live in :class:`market_sources.polite_http.PoliteClient`;
@@ -13,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from market_sources import impersonate
+from market_sources.impersonate import ImpersonateTransport
 from market_sources.polite_http import PoliteClient
 
 BASE_URL = "https://www.olx.kz"
@@ -49,6 +52,9 @@ class OlxClient:
             timeout_s=TIMEOUT_S,
             max_retries=MAX_RETRIES,
             proxy=proxy,
+            transport=ImpersonateTransport(proxy=proxy)
+            if impersonate.available()
+            else None,
         )
 
     async def search(

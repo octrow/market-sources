@@ -12,6 +12,8 @@ dependencies = [
 # Only the Ozon adapter (and `playwright_session`'s launch path) needs a browser.
 # Both modules import fine without it — playwright is imported lazily.
 browser = ["playwright>=1.44"]
+# OLX's WAF blocks httpx's TLS fingerprint; curl_cffi impersonates Chrome (impersonate.py).
+impersonate = ["curl_cffi>=0.11"]
 dev = ["pytest>=8", "pytest-asyncio>=0.24"]
 
 [build-system]
