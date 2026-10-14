@@ -1,10 +1,14 @@
 version: 2
 updates:
-  - package-ecosystem: pip
-    directory: /
-    schedule:
-      interval: monthly
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: monthly
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }   # skip releases younger than a week (hijacked-release window)
+    groups:
+      actions: { patterns: ["*"] }
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }   # skip releases younger than a week (hijacked-release window)
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
