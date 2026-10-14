@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
 ### Added
 
 - `OlxSource.search_all(query, min_price, max_price)`: every listing in a price range. OLX caps a search at 1000
