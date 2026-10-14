@@ -19,6 +19,8 @@
 Под адаптерами два переиспользуемых слоя: `PoliteClient` — асинхронный HTTP-клиент с ограничением темпа и
 повторами, и `BrowserSession` — постоянный headless Chromium для сайтов, которым нужен настоящий браузер.
 
+<p align="center"><img src="docs/demo.gif" alt="Терминал: examples/kaspi_demo.py ищет на Kaspi.kz «iphone 15» за 1,5 с и выводит пять самых дешёвых из 32 предложений с продавцом, рейтингом и доставкой" width="760"></p>
+
 ```python
 import asyncio
 from market_sources import KaspiSource

@@ -18,6 +18,8 @@ who track prices and offers on Kazakhstan marketplaces: price monitors, deal bot
 Under the adapters sit two reusable layers: `PoliteClient`, a paced, retrying async HTTP client, and
 `BrowserSession`, a persistent headless Chromium for sites that need a real browser.
 
+<p align="center"><img src="docs/demo.gif" alt="Terminal: examples/kaspi_demo.py searches Kaspi.kz for &quot;iphone 15&quot; in 1.5 s and prints the five cheapest of 32 offers with seller, rating and delivery" width="760"></p>
+
 ```python
 import asyncio
 from market_sources import KaspiSource
