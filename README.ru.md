@@ -1,4 +1,6 @@
 <picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-mobile-dark.ru.svg">
+  <source media="(max-width: 600px)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-mobile-light.ru.svg">
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-dark.ru.svg">
   <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-light.ru.svg" width="100%" alt="market-sources: асинхронные скрейперы Kaspi.kz, OLX.kz и Ozon.kz за одним протоколом ProductSource: поиск, предложения, отзывы, характеристики. Рядом с названием анти-бот защита каждого сайта и то, как её проходит адаптер: kaspi.kz проверяет referer, и PoliteClient шлёт referer страницы; olx.kz проверяет TLS-отпечаток, и ImpersonateTransport шлёт отпечаток Chrome через curl_cffi; ozon.kz отдаёт JavaScript-челлендж, и BrowserSession читает его через headless Chromium. Голый запрос httpx получает 403 на всех трёх; адаптеры получают 200 и возвращают RawProduct, RawOffer и RawReview.">
 </picture>
@@ -116,6 +118,8 @@ class ProductSource(Protocol):
 ## Принципы устройства
 
 <picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-mobile-dark.ru.svg">
+  <source media="(max-width: 600px)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-mobile-light.ru.svg">
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-dark.ru.svg">
   <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-light.ru.svg" width="100%" alt="Каждый адаптер — три файла: client.py (или browser.py) знает эндпоинты и единственный делает I/O; он передаёт разобранный dict в parse.py — чистые функции, которые возвращают Raw-модели и не импортируют клиент; source.py собирает оба в ProductSource. parse.py тестируется без сети и без моков.">
 </picture>

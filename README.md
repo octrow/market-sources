@@ -1,4 +1,6 @@
 <picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-dark.svg">
   <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-light.svg" width="100%" alt="market-sources: async scrapers for Kaspi.kz, OLX.kz and Ozon.kz behind one ProductSource protocol: search, offers, reviews, specs. Beside the title, each site's anti-bot gate and how the adapter passes it: kaspi.kz checks the referer and PoliteClient sends the page referer; olx.kz fingerprints TLS and ImpersonateTransport sends Chrome's through curl_cffi; ozon.kz serves a JavaScript challenge and BrowserSession reads it through headless Chromium. A bare httpx request gets 403 on all three; the adapters get 200 and return RawProduct, RawOffer and RawReview.">
 </picture>
@@ -114,6 +116,8 @@ Please use it responsibly: keep the default pacing, cache what you can, and resp
 ## Design rules
 
 <picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-dark.svg">
   <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-light.svg" width="100%" alt="Every adapter is three files: client.py (or browser.py) knows the endpoints and is the only file that does I/O; it passes a decoded dict to parse.py, pure functions that return Raw models and never import the client; source.py wires both into a ProductSource. parse.py is tested with no network and no mocking.">
 </picture>

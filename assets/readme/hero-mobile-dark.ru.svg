@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1006" viewBox="0 0 600 1006" role="img" aria-labelledby="title desc">
+<title id="title">market-sources: асинхронные скрейперы Kaspi.kz, OLX.kz и Ozon.kz за одним протоколом</title>
+<desc id="desc">Слева название и назначение. Справа анти-бот защита каждого маркетплейса и то, чем адаптер её проходит. kaspi.kz проверяет referer, PoliteClient отправляет referer страницы. olx.kz проверяет TLS-отпечаток, ImpersonateTransport отправляет отпечаток Chrome через curl_cffi. ozon.kz отдаёт JavaScript-челлендж, BrowserSession читает его через headless Chromium. Голый запрос httpx получает 403 на всех трёх; каждый адаптер возвращает модели RawProduct, RawOffer и RawReview.</desc>
+<rect width="600" height="1006" rx="20" fill="#0E161E"/>
+<text x="32" y="64" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#5DB7DF" letter-spacing="1.5" xml:space="preserve">KASPI.KZ · OLX.KZ · OZON.KZ</text>
+<text x="28" y="130" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="60" fill="#E5ECF1" font-weight="800" letter-spacing="-1.5" xml:space="preserve">market-sources</text>
+<text x="32" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="28" fill="#E5ECF1" font-weight="600" xml:space="preserve">Поиск, отзывы и предложения</text>
+<text x="32" y="218" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="28" fill="#E5ECF1" font-weight="600" xml:space="preserve">продавцов на маркетплейсах РК.</text>
+<text x="32" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#97A5B1" xml:space="preserve">Один протокол ProductSource, на выходе</text>
+<text x="32" y="292" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#97A5B1" xml:space="preserve">Pydantic-модели, темп встроен.</text>
+<rect x="32" y="318" width="100" height="42" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="46" y="346" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#E5ECF1" xml:space="preserve">search</text>
+<rect x="142" y="318" width="100" height="42" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="156" y="346" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#E5ECF1" xml:space="preserve">offers</text>
+<rect x="252" y="318" width="112" height="42" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="266" y="346" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#E5ECF1" xml:space="preserve">reviews</text>
+<rect x="374" y="318" width="88" height="42" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="388" y="346" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#E5ECF1" xml:space="preserve">specs</text>
+<rect x="32" y="392" width="536" height="582" rx="14" fill="#16212C" stroke="#2A3845" stroke-width="1.5"/>
+<text x="452" y="436" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#97A5B1" text-anchor="end" xml:space="preserve">голый httpx</text>
+<text x="548" y="436" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#97A5B1" text-anchor="end" xml:space="preserve">адаптер</text>
+<text x="56" y="484" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#5DB7DF" font-weight="700" xml:space="preserve">kaspi.kz</text>
+<text x="372" y="484" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M428 477 H456 M448 470 L456 477 L448 484" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="484" y="484" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<text x="56" y="516" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#97A5B1" xml:space="preserve">PoliteClient</text>
+<text x="56" y="550" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">защита: проверка referer</text>
+<text x="56" y="578" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">→ шлёт referer страницы</text>
+<path d="M56 600 H544" stroke="#2A3845" stroke-width="1.5"/>
+<text x="56" y="636" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#5DB7DF" font-weight="700" xml:space="preserve">olx.kz</text>
+<text x="372" y="636" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M428 629 H456 M448 622 L456 629 L448 636" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="484" y="636" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<text x="56" y="668" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#97A5B1" xml:space="preserve">ImpersonateTransport</text>
+<text x="56" y="702" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">защита: TLS-отпечаток</text>
+<text x="56" y="730" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">→ TLS Chrome через curl_cffi</text>
+<path d="M56 752 H544" stroke="#2A3845" stroke-width="1.5"/>
+<text x="56" y="788" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#5DB7DF" font-weight="700" xml:space="preserve">ozon.kz</text>
+<text x="372" y="788" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M428 781 H456 M448 774 L456 781 L448 788" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="484" y="788" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="22" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<text x="56" y="820" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#97A5B1" xml:space="preserve">BrowserSession</text>
+<text x="56" y="854" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">защита: JS-челлендж</text>
+<text x="56" y="882" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#E5ECF1" xml:space="preserve">→ настоящий Chromium</text>
+<path d="M56 904 H544" stroke="#2A3845" stroke-width="1.5"/>
+<text x="56" y="936" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#E2B04A" font-weight="700" xml:space="preserve">→ RawProduct · RawOffer · RawReview</text>
+</svg>
