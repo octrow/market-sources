@@ -17,9 +17,9 @@
 <text x="56" y="572" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#14202B" xml:space="preserve">wires both together</text>
 <text x="56" y="600" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="21" fill="#56636E" xml:space="preserve">implements ProductSource</text>
 <path d="M282 258 V302 M274 292 L282 302 L290 292" stroke="#56636E" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="302" y="287" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#56636E" xml:space="preserve">dict</text>
+<text x="302" y="287" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="21" fill="#56636E" xml:space="preserve">dict</text>
 <path d="M282 442 V486 M274 476 L282 486 L290 476" stroke="#56636E" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="302" y="471" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#56636E" xml:space="preserve">Raw*</text>
+<text x="302" y="471" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="21" fill="#56636E" xml:space="preserve">Raw*</text>
 <path d="M540 372 H562 V634 H470" stroke="#1F7A4D" stroke-width="2" fill="none" stroke-dasharray="6 6"/>
 <text x="300" y="662" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#1F7A4D" text-anchor="middle" xml:space="preserve">no network, no mocking:</text>
 <text x="300" y="692" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#1F7A4D" text-anchor="middle" xml:space="preserve">parse.py never imports the client</text>
