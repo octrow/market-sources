@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">market-sources: async scrapers for Kaspi.kz, OLX.kz and Ozon.kz behind one protocol</title>
+<desc id="desc">Left: the name and what it does. Right: each marketplace&#x27;s anti-bot gate and what the adapter does to pass it. kaspi.kz checks the referer, PoliteClient sends a page-matching one. olx.kz fingerprints TLS, ImpersonateTransport sends Chrome&#x27;s via curl_cffi. ozon.kz serves a JavaScript challenge, BrowserSession reads it through headless Chromium. A bare httpx request gets 403 on all three; every adapter returns RawProduct, RawOffer and RawReview models.</desc>
+<rect width="1200" height="420" rx="20" fill="#0E161E"/>
+<text x="60" y="82" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#5DB7DF" letter-spacing="1.5" xml:space="preserve">KASPI.KZ · OLX.KZ · OZON.KZ</text>
+<text x="56" y="154" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="64" fill="#E5ECF1" font-weight="800" letter-spacing="-1.5" xml:space="preserve">market-sources</text>
+<text x="60" y="206" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="27" fill="#E5ECF1" font-weight="600" xml:space="preserve">Search, offers, reviews and specs</text>
+<text x="60" y="241" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="27" fill="#E5ECF1" font-weight="600" xml:space="preserve">from Kazakhstan marketplaces.</text>
+<text x="60" y="284" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#97A5B1" xml:space="preserve">One ProductSource protocol, Pydantic</text>
+<text x="60" y="314" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="22" fill="#97A5B1" xml:space="preserve">models back, pacing built in.</text>
+<rect x="60" y="346" width="96" height="38" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="73" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#E5ECF1" xml:space="preserve">search</text>
+<rect x="165.6" y="346" width="96" height="38" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="178.6" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#E5ECF1" xml:space="preserve">offers</text>
+<rect x="271.2" y="346" width="107" height="38" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="284.2" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#E5ECF1" xml:space="preserve">reviews</text>
+<rect x="388.4" y="346" width="84" height="38" rx="8" fill="#1E2C39" stroke="#2A3845" stroke-width="1.5"/>
+<text x="401.4" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#E5ECF1" xml:space="preserve">specs</text>
+<rect x="604" y="32" width="564" height="356" rx="14" fill="#16212C" stroke="#2A3845" stroke-width="1.5"/>
+<text x="1144" y="66" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#97A5B1" text-anchor="end" xml:space="preserve">bare httpx    adapter</text>
+<text x="628" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="23" fill="#5DB7DF" font-weight="700" xml:space="preserve">kaspi.kz</text>
+<text x="752" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#97A5B1" xml:space="preserve">PoliteClient</text>
+<text x="628" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#E5ECF1" xml:space="preserve">gate: referer check → sends the page referer</text>
+<text x="1012" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M1060 113 H1084 M1076 106 L1084 113 L1076 120" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1100" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<path d="M628 172 H1144" stroke="#2A3845" stroke-width="1.5"/>
+<text x="628" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="23" fill="#5DB7DF" font-weight="700" xml:space="preserve">olx.kz</text>
+<text x="752" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#97A5B1" xml:space="preserve">ImpersonateTransport</text>
+<text x="628" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#E5ECF1" xml:space="preserve">gate: TLS fingerprint → Chrome TLS via curl_cffi</text>
+<text x="1012" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M1060 201 H1084 M1076 194 L1084 201 L1076 208" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1100" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<path d="M628 260 H1144" stroke="#2A3845" stroke-width="1.5"/>
+<text x="628" y="296" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="23" fill="#5DB7DF" font-weight="700" xml:space="preserve">ozon.kz</text>
+<text x="752" y="296" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#97A5B1" xml:space="preserve">BrowserSession</text>
+<text x="628" y="328" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#E5ECF1" xml:space="preserve">gate: JS challenge → real headless Chromium</text>
+<text x="1012" y="296" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#EE8A73" font-weight="700" xml:space="preserve">403</text>
+<path d="M1060 289 H1084 M1076 282 L1084 289 L1076 296" stroke="#97A5B1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1100" y="296" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#6FCF9A" font-weight="700" xml:space="preserve">200</text>
+<path d="M628 348 H1144" stroke="#2A3845" stroke-width="1.5"/>
+<text x="628" y="374" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#E2B04A" font-weight="700" xml:space="preserve">→ RawProduct · RawOffer · RawReview</text>
+</svg>

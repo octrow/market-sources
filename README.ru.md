@@ -1,15 +1,16 @@
-# market-sources
-
-<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/social-preview.png" alt="market-sources: асинхронные Python-скрейперы Kaspi.kz, OLX.kz и Ozon.kz; поиск «iphone 15» на Kaspi находит 32 предложения от 379500 KZT" width="760"></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-dark.ru.svg">
+  <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-light.ru.svg" width="100%" alt="market-sources: асинхронные скрейперы Kaspi.kz, OLX.kz и Ozon.kz за одним протоколом ProductSource: поиск, предложения, отзывы, характеристики. Рядом с названием анти-бот защита каждого сайта и то, как её проходит адаптер: kaspi.kz проверяет referer, и PoliteClient шлёт referer страницы; olx.kz проверяет TLS-отпечаток, и ImpersonateTransport шлёт отпечаток Chrome через curl_cffi; ozon.kz отдаёт JavaScript-челлендж, и BrowserSession читает его через headless Chromium. Голый запрос httpx получает 403 на всех трёх; адаптеры получают 200 и возвращают RawProduct, RawOffer и RawReview.">
+</picture>
 
 <p align="center">
   <a href="https://github.com/octrow/market-sources/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/octrow/market-sources/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://pypi.org/project/market-sources/"><img alt="PyPI" src="https://img.shields.io/pypi/v/market-sources"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue">
-  <a href="LICENSE"><img alt="Лицензия MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href="https://github.com/octrow/market-sources/blob/main/LICENSE"><img alt="Лицензия MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> | <b>Русский</b></p>
+<p align="center"><a href="https://github.com/octrow/market-sources/blob/main/README.md">English</a> | <b>Русский</b></p>
 
 Асинхронные Python-скрейперы **Kaspi.kz**, **OLX.kz** и **Ozon.kz** за одним протоколом `ProductSource`.
 Найти товар, получить предложения всех продавцов с ценой и доставкой, прочитать отзывы и характеристики.
@@ -19,7 +20,7 @@
 Под адаптерами два переиспользуемых слоя: `PoliteClient` — асинхронный HTTP-клиент с ограничением темпа и
 повторами, и `BrowserSession` — постоянный headless Chromium для сайтов, которым нужен настоящий браузер.
 
-<p align="center"><img src="docs/demo.gif" alt="Терминал: examples/kaspi_demo.py ищет на Kaspi.kz «iphone 15» за 1,5 с и выводит пять самых дешёвых из 32 предложений с продавцом, рейтингом и доставкой" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/demo.gif" alt="Терминал: examples/kaspi_demo.py ищет на Kaspi.kz «iphone 15» за 1,5 с и выводит пять самых дешёвых из 32 предложений с продавцом, рейтингом и доставкой" width="760"></p>
 
 ```python
 import asyncio
@@ -114,6 +115,11 @@ class ProductSource(Protocol):
 
 ## Принципы устройства
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-dark.ru.svg">
+  <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-light.ru.svg" width="100%" alt="Каждый адаптер — три файла: client.py (или browser.py) знает эндпоинты и единственный делает I/O; он передаёт разобранный dict в parse.py — чистые функции, которые возвращают Raw-модели и не импортируют клиент; source.py собирает оба в ProductSource. parse.py тестируется без сети и без моков.">
+</picture>
+
 **Каждый адаптер — три файла, и только один из них делает I/O.** `client.py` (или `browser.py`) знает
 эндпоинты и ничего не знает о форме данных; `parse.py` — чистые функции над уже разобранными `dict` и
 никогда не импортирует клиент; `source.py` собирает их в `ProductSource`. Благодаря этому парсеры
@@ -172,8 +178,7 @@ class ProductSource(Protocol):
 ## Происхождение
 
 Выделено из проекта автора `buy-smarter` (`src/buysmarter/sources/`). Устройство polite-HTTP и
-browser-session опирается ещё на три независимые реализации того же подхода в `olx-almaty-phone-analyzer` и
-`get_cool_event`.
+browser-session опирается ещё на три реализации того же подхода в более ранних скрейперах автора.
 
 ### Отличия от исходного кода
 
@@ -200,8 +205,8 @@ uv run pytest
 
 ## Как помочь
 
-См. [CONTRIBUTING.ru.md](CONTRIBUTING.ru.md). Об уязвимостях сообщайте приватно: [SECURITY.ru.md](SECURITY.ru.md).
+См. [CONTRIBUTING.ru.md](https://github.com/octrow/market-sources/blob/main/CONTRIBUTING.ru.md). Об уязвимостях сообщайте приватно: [SECURITY.ru.md](https://github.com/octrow/market-sources/blob/main/SECURITY.ru.md).
 
 ## Лицензия
 
-[MIT](LICENSE)
+[MIT](https://github.com/octrow/market-sources/blob/main/LICENSE)

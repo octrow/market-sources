@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+<title id="title">Every adapter is three files, and only one does I/O</title>
+<desc id="desc">client.py (or browser.py for Ozon) knows the endpoints and is the only file that does I/O; it hands a decoded dict to parse.py, pure functions with no imports from the client, which return Raw models; source.py wires both into a ProductSource for your code. The parsers are tested against saved payloads with no network and no mocking.</desc>
+<rect width="1200" height="300" rx="20" fill="#0E161E"/>
+<text x="48" y="62" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="26" fill="#E5ECF1" font-weight="700" xml:space="preserve">Every adapter is three files, and only one does I/O</text>
+<rect x="48" y="96" width="320" height="118" rx="12" fill="#16212C" stroke="#E2B04A" stroke-width="2"/>
+<text x="70" y="138" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#E2B04A" font-weight="700" xml:space="preserve">client.py</text>
+<text x="70" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="20" fill="#E5ECF1" xml:space="preserve">endpoints, HTTP or browser</text>
+<text x="70" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#97A5B1" xml:space="preserve">the only file with I/O</text>
+<rect x="440" y="96" width="320" height="118" rx="12" fill="#16212C" stroke="#2A3845" stroke-width="2"/>
+<text x="462" y="138" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#5DB7DF" font-weight="700" xml:space="preserve">parse.py</text>
+<text x="462" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="20" fill="#E5ECF1" xml:space="preserve">pure functions over dicts</text>
+<text x="462" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#97A5B1" xml:space="preserve">tested on saved payloads</text>
+<rect x="832" y="96" width="320" height="118" rx="12" fill="#16212C" stroke="#2A3845" stroke-width="2"/>
+<text x="854" y="138" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="24" fill="#5DB7DF" font-weight="700" xml:space="preserve">source.py</text>
+<text x="854" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="20" fill="#E5ECF1" xml:space="preserve">wires both together</text>
+<text x="854" y="200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="19" fill="#97A5B1" xml:space="preserve">implements ProductSource</text>
+<path d="M378 155 H430 M420 147 L430 155 L420 163" stroke="#97A5B1" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="404" y="140" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#97A5B1" text-anchor="middle" xml:space="preserve">dict</text>
+<path d="M770 155 H822 M812 147 L822 155 L812 163" stroke="#97A5B1" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="796" y="140" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#97A5B1" text-anchor="middle" xml:space="preserve">Raw*</text>
+<path d="M470 214 V244 H730 V214" stroke="#6FCF9A" stroke-width="2" fill="none" stroke-dasharray="6 6"/>
+<text x="600" y="278" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif" font-size="20" fill="#6FCF9A" text-anchor="middle" xml:space="preserve">no network, no mocking: parse.py never imports the client</text>
+</svg>

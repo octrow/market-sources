@@ -1,15 +1,16 @@
-# market-sources
-
-<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/social-preview.png" alt="market-sources: async Python scrapers for Kaspi.kz, OLX.kz and Ozon.kz; a Kaspi search for &quot;iphone 15&quot; finds 32 offers from 379500 KZT" width="760"></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-dark.svg">
+  <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/hero-light.svg" width="100%" alt="market-sources: async scrapers for Kaspi.kz, OLX.kz and Ozon.kz behind one ProductSource protocol: search, offers, reviews, specs. Beside the title, each site's anti-bot gate and how the adapter passes it: kaspi.kz checks the referer and PoliteClient sends the page referer; olx.kz fingerprints TLS and ImpersonateTransport sends Chrome's through curl_cffi; ozon.kz serves a JavaScript challenge and BrowserSession reads it through headless Chromium. A bare httpx request gets 403 on all three; the adapters get 200 and return RawProduct, RawOffer and RawReview.">
+</picture>
 
 <p align="center">
   <a href="https://github.com/octrow/market-sources/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/octrow/market-sources/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://pypi.org/project/market-sources/"><img alt="PyPI" src="https://img.shields.io/pypi/v/market-sources"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue">
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href="https://github.com/octrow/market-sources/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
-<p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
+<p align="center"><b>English</b> | <a href="https://github.com/octrow/market-sources/blob/main/README.ru.md">Русский</a></p>
 
 Async Python scrapers for **Kaspi.kz**, **OLX.kz** and **Ozon.kz** behind one `ProductSource` protocol.
 Search a product, get every seller's offer with price and delivery, read reviews and specs. Built for people
@@ -18,7 +19,7 @@ who track prices and offers on Kazakhstan marketplaces: price monitors, deal bot
 Under the adapters sit two reusable layers: `PoliteClient`, a paced, retrying async HTTP client, and
 `BrowserSession`, a persistent headless Chromium for sites that need a real browser.
 
-<p align="center"><img src="docs/demo.gif" alt="Terminal: examples/kaspi_demo.py searches Kaspi.kz for &quot;iphone 15&quot; in 1.5 s and prints the five cheapest of 32 offers with seller, rating and delivery" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/demo.gif" alt="Terminal: examples/kaspi_demo.py searches Kaspi.kz for &quot;iphone 15&quot; in 1.5 s and prints the five cheapest of 32 offers with seller, rating and delivery" width="760"></p>
 
 ```python
 import asyncio
@@ -112,6 +113,11 @@ Please use it responsibly: keep the default pacing, cache what you can, and resp
 
 ## Design rules
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-dark.svg">
+  <img src="https://raw.githubusercontent.com/octrow/market-sources/main/assets/readme/adapter-light.svg" width="100%" alt="Every adapter is three files: client.py (or browser.py) knows the endpoints and is the only file that does I/O; it passes a decoded dict to parse.py, pure functions that return Raw models and never import the client; source.py wires both into a ProductSource. parse.py is tested with no network and no mocking.">
+</picture>
+
 **Every adapter is three files, and only one of them does I/O.** `client.py` (or
 `browser.py`) knows endpoints and nothing about shapes; `parse.py` is pure
 functions over already-decoded `dict`s and never imports the client; `source.py`
@@ -184,8 +190,8 @@ the library's job ends at "the site said this".
 ## Origin
 
 Extracted from the author's `buy-smarter` project (`src/buysmarter/sources/`). The polite-HTTP and
-browser-session design is informed by three more independent implementations of the same pattern in
-`olx-almaty-phone-analyzer` and `get_cool_event`.
+browser-session design also draws on three other implementations of the same pattern in the author's
+earlier scrapers.
 
 ### Changes from the original code
 
@@ -214,8 +220,8 @@ uv run pytest
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately: [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](https://github.com/octrow/market-sources/blob/main/CONTRIBUTING.md). Report vulnerabilities privately: [SECURITY.md](https://github.com/octrow/market-sources/blob/main/SECURITY.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/octrow/market-sources/blob/main/LICENSE)
