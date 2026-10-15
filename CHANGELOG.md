@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-15
+
+### Changed
+
+- README redesign: light/dark SVG hero and diagram, badges; images use absolute URLs so they render on PyPI.
+
 ## [0.2.0] - 2026-10-14
 
 ### Added
