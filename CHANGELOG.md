@@ -5,6 +5,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `OzonSource.search` takes a `budget` and caps the price server-side (`currency_price`), like OLX.
+
 ## [0.2.2] - 2026-10-15
 
 ### Changed

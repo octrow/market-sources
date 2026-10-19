@@ -338,6 +338,12 @@ def test_the_search_path_encodes_the_query():
     assert search_path("iphone 15") == "/search/?text=iphone%2015&from_global=true"
 
 
+def test_the_search_path_caps_the_price_at_the_budget():
+    assert search_path("гитара", budget=30000).endswith(
+        "&from_global=true&currency_price=0.000%3B30000.000"
+    )
+
+
 class StubBrowser:
     def __init__(self, payload: dict) -> None:
         self.payload = payload
