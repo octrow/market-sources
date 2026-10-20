@@ -93,8 +93,9 @@ class FakeApi:
     def chromium(self):
         return self
 
-    async def launch(self, headless: bool, args: list[str]) -> FakeBrowser:
-        browser = FakeBrowser({"headless": headless, "args": args}, self.probe_statuses)
+    async def launch(self, headless: bool, args: list[str], channel: str | None) -> FakeBrowser:
+        kwargs = {"headless": headless, "args": args, "channel": channel}
+        browser = FakeBrowser(kwargs, self.probe_statuses)
         self.browsers.append(browser)
         return browser
 
@@ -155,6 +156,20 @@ async def test_state_without_saved_user_agent_falls_back_to_the_default(fake_api
     await sess.aclose()
 
 
+async def test_the_channel_reaches_the_search_launch(fake_api):
+    sess = BrowserSession(idle_timeout_s=0, channel="chrome")
+    await sess._open_page()
+    assert fake_api.browsers[0].launch_kwargs["channel"] == "chrome"
+    await sess.aclose()
+
+
+async def test_no_channel_launches_the_bundled_chromium(fake_api):
+    sess = BrowserSession(idle_timeout_s=0)
+    await sess._open_page()
+    assert fake_api.browsers[0].launch_kwargs["channel"] is None
+    await sess.aclose()
+
+
 # ------------------------------------------------------------------ bootstrap
 
 
@@ -177,6 +192,7 @@ async def test_bootstrap_polls_until_ok_then_saves_state_and_user_agent(fake_api
 
     [browser] = fake_api.browsers
     assert browser.launch_kwargs["headless"] is False
+    assert browser.launch_kwargs["channel"] is None
     assert "--disable-blink-features=AutomationControlled" in browser.launch_kwargs["args"]
     [ctx] = browser.contexts
     assert "storage_state" not in ctx.options
@@ -186,6 +202,12 @@ async def test_bootstrap_polls_until_ok_then_saves_state_and_user_agent(fake_api
     assert sleeps == [2.0, 2.0]
     assert browser.closed is True
     assert fake_api.drivers_stopped == 1
+
+
+async def test_bootstrap_opens_the_session_channel(fake_api, tmp_path):
+    sess = BrowserSession(state_path=tmp_path / "state.json", channel="chrome")
+    assert await sess.bootstrap("https://x.test/probe") is True
+    assert fake_api.browsers[0].launch_kwargs["channel"] == "chrome"
 
 
 async def test_bootstrap_times_out_without_writing_state(fake_api, tmp_path):

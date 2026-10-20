@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `OzonSource.search` takes a `budget` and caps the price server-side (`currency_price`), like OLX.
+- `BrowserSession(channel=...)`: the Playwright browser channel for both the search session and
+  `bootstrap`; `channel="chrome"` drives the installed Google Chrome instead of the bundled Chromium.
 
 ## [0.2.2] - 2026-10-15
 

@@ -136,6 +136,7 @@ class BrowserSession:
         locale: str = "ru-RU",
         viewport: dict[str, int] | None = None,
         launch_args: list[str] | None = None,
+        channel: str | None = None,
         nav_timeout_ms: int = NAV_TIMEOUT_MS,
         idle_timeout_s: float = IDLE_TIMEOUT_S,
         state_path: Path | None = None,
@@ -148,6 +149,9 @@ class BrowserSession:
         self.locale = locale
         self.viewport = dict(viewport or DEFAULT_VIEWPORT)
         self.launch_args = list(launch_args if launch_args is not None else LAUNCH_ARGS)
+        #: Playwright browser channel (``"chrome"`` = the installed Google Chrome);
+        #: ``None`` launches Playwright's bundled Chromium.
+        self.channel = channel
         self.nav_timeout_ms = nav_timeout_ms
         self.idle_timeout_s = idle_timeout_s
         self._page_factory = page_factory
@@ -261,7 +265,7 @@ class BrowserSession:
                 self._pw = None
             self._pw = await pw.async_playwright().start()
             self._browser = await self._pw.chromium.launch(
-                headless=self.headless, args=self.launch_args
+                headless=self.headless, args=self.launch_args, channel=self.channel
             )
             self._browser.on("disconnected", self._on_disconnect)
             self._context = await self._browser.new_context(**self._context_options())
@@ -298,7 +302,9 @@ class BrowserSession:
         driver = await _playwright().async_playwright().start()
         browser = None
         try:
-            browser = await driver.chromium.launch(headless=False, args=self.launch_args)
+            browser = await driver.chromium.launch(
+                headless=False, args=self.launch_args, channel=self.channel
+            )
             context = await browser.new_context(
                 viewport=self.viewport, user_agent=self.user_agent, locale=self.locale
             )
