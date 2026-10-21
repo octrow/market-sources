@@ -20,7 +20,7 @@ from market_sources.kaspi.parse import (
     parse_search,
     parse_specs,
 )
-from market_sources.kaspi.source import KaspiSource
+from market_sources.kaspi.source import NEGATIVE_LIMIT, KaspiSource
 from market_sources.polite_http import PoliteClient
 
 # ----------------------------------------------------------------- parse_search
@@ -134,6 +134,57 @@ def test_no_photos_empty_list():
     [product] = parse_search({"data": {"cards": [card(previewImages=[])]}})
     assert product.image_urls == []
     assert product.image_url is None
+
+
+# Trimmed from a live search card (2026-10-22, "кроссовки мужские"): only the
+# fields parse_search reads.
+FASHION_CARD = {
+    "id": "16535441b",
+    "configSku": "121564477",
+    "title": "Кроссовки LOOK черный",
+    "brand": "LOOK",
+    "isBrandOfficialPartner": False,
+    "category": ["Обувь", "Мужская обувь", "Мужские кроссовки и кеды"],
+    "categoryRu": ["Обувь", "Мужская обувь", "Мужские кроссовки и кеды"],
+    "shopLink": "/p/krossovki-look-chernyi-16535441b/",
+    "unitSalePrice": 12990,
+}
+
+
+def test_a_fashion_card_keeps_brand_category_and_config_sku():
+    [product] = parse_search({"data": {"cards": [FASHION_CARD]}})
+    assert product.product_id == "16535441"
+    assert product.review_id == "121564477"
+    assert product.brand == "LOOK"
+    assert product.official_partner is False
+    assert product.category_path == ["Обувь", "Мужская обувь", "Мужские кроссовки и кеды"]
+    assert product.specs_available is True  # the source fetches specs by configSku
+
+
+def test_a_config_sku_equal_to_the_id_is_not_repeated():
+    [product] = parse_search({"data": {"cards": [card(configSku="123456")]}})
+    assert product.review_id is None
+
+
+def test_a_no_name_brand_is_kept_verbatim():
+    [product] = parse_search({"data": {"cards": [card(brand="Без бренда")]}})
+    assert product.brand == "Без бренда"
+
+
+def test_a_card_without_the_new_fields_leaves_them_unknown():
+    [product] = parse_search({"data": {"cards": [card()]}})
+    assert product.brand is None
+    assert product.review_id is None
+    assert product.official_partner is None
+    assert product.category_path == []
+
+
+def test_a_malformed_category_or_partner_flag_is_dropped():
+    [product] = parse_search(
+        {"data": {"cards": [card(categoryRu="Обувь", isBrandOfficialPartner="yes")]}}
+    )
+    assert product.category_path == []
+    assert product.official_partner is None
 
 
 def test_parse_search_tolerates_an_empty_payload():
@@ -360,8 +411,9 @@ class StubKaspiClient:
         self.calls.append(("offers", product_id))
         return {"offers": [{"merchantName": "Alser", "price": 1}]}
 
-    async def reviews(self, product_id):
+    async def reviews(self, product_id, **kwargs):
         self.calls.append(("reviews", product_id))
+        self.review_kwargs = kwargs
         return {"data": [{"rating": 5}]}
 
     async def specs(self, product_id):
@@ -597,3 +649,50 @@ async def test_reviews_with_stats_makes_one_call_and_parses_both():
 async def test_reviews_still_returns_only_the_list():
     source = KaspiSource(client=StubKaspiClient())
     assert (await source.reviews("123456"))[0].rating == 5.0
+
+
+# ------------------------------------------------------------- variant ids (configSku)
+
+
+async def test_variant_calls_use_the_config_sku_remembered_from_search():
+    stub = StubKaspiClient()
+
+    async def search(query, page=0, sort="relevance"):
+        return {"data": {"cards": [FASHION_CARD]}}
+
+    stub.search = search
+    source = KaspiSource(client=stub)
+    await source.search("кроссовки")
+    offers = await source.offers("16535441")
+    reviews = await source.reviews("16535441")
+    await source.specs("16535441")
+    assert stub.calls == [
+        ("offers", "121564477"),
+        ("reviews", "121564477"),
+        ("specs", "121564477"),
+    ]
+    # Results stay keyed by the id the caller holds.
+    assert offers[0].product_id == "16535441"
+    assert reviews[0].product_id == "16535441"
+
+
+async def test_an_unknown_product_id_is_sent_as_is():
+    stub = StubKaspiClient()
+    await KaspiSource(client=stub).reviews("999")
+    assert stub.calls == [("reviews", "999")]
+
+
+async def test_an_explicit_review_id_wins():
+    stub = StubKaspiClient()
+    reviews = await KaspiSource(client=stub).reviews("15358806", review_id="130678577")
+    assert stub.calls == [("reviews", "130678577")]
+    assert reviews[0].product_id == "15358806"
+
+
+async def test_negative_requests_the_negative_filter_with_a_larger_limit():
+    stub = StubKaspiClient()
+    source = KaspiSource(client=stub)
+    await source.reviews_with_stats("123456", negative=True)
+    assert stub.review_kwargs == {"limit": NEGATIVE_LIMIT, "filter": "NEGATIVE"}
+    await source.reviews("123456")
+    assert stub.review_kwargs == {}

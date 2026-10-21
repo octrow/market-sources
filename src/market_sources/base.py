@@ -30,8 +30,22 @@ class RawProduct(BaseModel):
     # False when the search card's id carried a non-numeric variant-letter
     # suffix (e.g. "16540138b") — a signal the card is a fashion/apparel
     # variant with no content-API specs page. Lets the consumer skip the specs
-    # fetch entirely instead of paying for a guaranteed 404.
+    # fetch entirely instead of paying for a guaranteed 404. Kaspi cards that
+    # carry a `configSku` stay True: the source fetches specs by `review_id`.
     specs_available: bool = True
+    # The brand exactly as the source names it, placeholders included (Kaspi
+    # uses "Без бренда" for no-name goods). None = the source sent no brand.
+    brand: str | None = None
+    # The id the source's offers/reviews/specs endpoints want when it differs
+    # from `product_id` (Kaspi: the card's `configSku`, which fashion variants
+    # like "15358806b" need — the bare numeric id returns no reviews, no offers
+    # and a 404 for specs). None = use `product_id`.
+    review_id: str | None = None
+    # True when the brand's official partner sells it. None = unknown.
+    official_partner: bool | None = None
+    # The source's category breadcrumb, root first, e.g.
+    # ["Обувь", "Мужская обувь", "Мужские кроссовки и кеды"]. Empty = unknown.
+    category_path: list[str] = []
 
 
 class RawOffer(BaseModel):
@@ -97,7 +111,11 @@ class ProductSource(Protocol):
         ...
 
     async def reviews(self, product_id: str) -> list[RawReview]:
-        """Return user reviews for ``product_id``."""
+        """Return user reviews for ``product_id``.
+
+        Adapters may add keyword-only options (Kaspi: ``negative``, ``review_id``);
+        calling with ``product_id`` alone must always work.
+        """
         ...
 
     async def specs(self, product_id: str) -> dict[str, str]:

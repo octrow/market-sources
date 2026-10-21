@@ -10,42 +10,72 @@ from market_sources.kaspi.parse import (
     parse_specs,
 )
 
+# ``filter="NEGATIVE"`` returns only the low-rated reviews; ask for more of them
+# than the default page, since they are what a buyer reads first.
+NEGATIVE_LIMIT = 30
+
 
 class KaspiSource:
-    """Marketplace adapter for Kaspi.kz, wiring ``KaspiClient`` + ``parse``."""
+    """Marketplace adapter for Kaspi.kz, wiring ``KaspiClient`` + ``parse``.
+
+    Fashion variants ("15358806b") answer offers/reviews/specs only under their
+    ``configSku``. ``search`` remembers product_id -> configSku, so the other
+    methods keep taking the numeric ``product_id`` callers already hold.
+    """
 
     name = "kaspi"
 
     def __init__(self, client: KaspiClient | None = None, *, proxy: str | None = None) -> None:
         self._client = client or KaspiClient(proxy=proxy)
         self._city_clients: dict[str, KaspiClient] = {}
+        self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
 
     async def search(self, query: str, city: str | None = None) -> list[RawProduct]:
         """Search Kaspi.kz for products matching ``query`` in ``city``."""
         client = self._client_for_city(city)
-        payload = await client.search(query)
-        return parse_search(payload)
+        products = parse_search(await client.search(query))
+        for product in products:
+            if product.review_id and product.review_id != product.product_id:
+                self._api_ids[product.product_id] = product.review_id
+        return products
+
+    def _api_id(self, product_id: str, explicit: str | None = None) -> str:
+        """The id Kaspi's per-product endpoints want: explicit, remembered, or as-is."""
+        return explicit or self._api_ids.get(str(product_id), str(product_id))
 
     async def offers(self, product_id: str) -> list[RawOffer]:
         """Return seller offers for ``product_id``."""
-        payload = await self._client.offers(product_id)
+        payload = await self._client.offers(self._api_id(product_id))
         return parse_offers(payload, product_id)
 
-    async def reviews(self, product_id: str) -> list[RawReview]:
-        """Return user reviews for ``product_id``."""
-        reviews, _stats = await self.reviews_with_stats(product_id)
+    async def reviews(
+        self, product_id: str, *, review_id: str | None = None, negative: bool = False
+    ) -> list[RawReview]:
+        """Return user reviews for ``product_id``; see :meth:`reviews_with_stats`."""
+        reviews, _stats = await self.reviews_with_stats(
+            product_id, review_id=review_id, negative=negative
+        )
         return reviews
 
     async def reviews_with_stats(
-        self, product_id: str
+        self, product_id: str, *, review_id: str | None = None, negative: bool = False
     ) -> tuple[list[RawReview], RawReviewStats | None]:
-        """Return reviews and aggregate stats for ``product_id`` from one API call."""
-        payload = await self._client.reviews(product_id)
+        """Return reviews and aggregate stats for ``product_id`` from one API call.
+
+        ``review_id`` overrides the id sent to Kaspi (a card's ``configSku``);
+        without it the one remembered from ``search`` is used. ``negative``
+        fetches only low-rated reviews, up to ``NEGATIVE_LIMIT``.
+        """
+        api_id = self._api_id(product_id, review_id)
+        if negative:
+            payload = await self._client.reviews(api_id, limit=NEGATIVE_LIMIT, filter="NEGATIVE")
+        else:
+            payload = await self._client.reviews(api_id)
         return parse_reviews(payload, product_id), parse_review_stats(payload, product_id)
 
     async def specs(self, product_id: str) -> dict[str, str]:
         """Return raw specification key/value pairs for ``product_id``."""
-        payload = await self._client.specs(product_id)
+        payload = await self._client.specs(self._api_id(product_id))
         return parse_specs(payload)
 
     async def aclose(self) -> None:
@@ -69,4 +99,4 @@ class KaspiSource:
         return self._city_clients[city]
 
 
-__all__ = ["DEFAULT_CITY", "KaspiSource"]
+__all__ = ["DEFAULT_CITY", "NEGATIVE_LIMIT", "KaspiSource"]

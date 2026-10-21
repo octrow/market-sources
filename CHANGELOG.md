@@ -5,6 +5,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-22
+
+### Added
+
+- `RawProduct.brand`, `review_id`, `official_partner`, `category_path` (defaults mean "unknown"). Kaspi search
+  fills them from the card's `brand` (verbatim, "Без бренда" included), `configSku`, `isBrandOfficialPartner`
+  and `categoryRu`.
+- `KaspiSource.reviews` / `reviews_with_stats` take keyword-only `negative=True` (`filter=NEGATIVE`, up to 30
+  reviews) and `review_id=` (an explicit id to query).
+
+### Fixed
+
+- Kaspi fashion variants ("15358806b"): `offers`, `reviews` and `specs` now query the card's `configSku`, which
+  `search` remembers per `product_id`. The bare numeric id returned 0 offers, 0 reviews and a specs 404. Such
+  cards now report `specs_available=True`.
+
 ## [0.3.0] - 2026-10-21
 
 ### Added

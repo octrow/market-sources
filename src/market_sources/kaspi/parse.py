@@ -101,6 +101,10 @@ def parse_search(payload: dict) -> list[RawProduct]:
             continue
         price = card.get("unitSalePrice") or card.get("unitPrice")
         images = _card_images(card)
+        # The id offers/reviews/specs answer to; fashion variants need it.
+        config_sku = str(card["configSku"]) if card.get("configSku") else None
+        partner = card.get("isBrandOfficialPartner")
+        category = card.get("categoryRu") or card.get("category")
         products.append(
             RawProduct(
                 source=SOURCE,
@@ -112,7 +116,13 @@ def parse_search(payload: dict) -> list[RawProduct]:
                 image_urls=images,
                 rating=card.get("rating"),
                 review_count=card.get("reviewsQuantity"),
-                specs_available=not _has_variant_letter_suffix(card),
+                specs_available=bool(config_sku) or not _has_variant_letter_suffix(card),
+                brand=card.get("brand") or None,
+                review_id=config_sku if config_sku != product_id else None,
+                official_partner=partner if isinstance(partner, bool) else None,
+                category_path=[c for c in category if isinstance(c, str)]
+                if isinstance(category, list)
+                else [],
             )
         )
     return products
