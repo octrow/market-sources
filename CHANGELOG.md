@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-22
+
 ### Added
 
 - `KaspiSource.search(budget=...)` and `KaspiClient.search(budget=...)`: a server-side price ceiling. Kaspi filters price only by fixed buckets
