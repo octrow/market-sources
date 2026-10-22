@@ -374,3 +374,9 @@ async def test_search_all_drops_listings_repeated_across_pages():
     products = await OlxSource(client=stub).search_all("x", 0, 10)
     assert [p.product_id for p in products] == ["1", "2"]
     assert [s["offset"] for s in stub.searches] == [0, 50]
+
+
+def test_a_city_name_resolves_to_its_olx_id():
+    source = OlxSource(client=StubOlxClient())
+    assert source._client_for_city("Алматы") is source._client
+    assert source._client_for_city("Шымкент").city_id == "47"

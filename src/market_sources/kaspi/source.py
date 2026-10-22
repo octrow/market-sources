@@ -1,6 +1,7 @@
 """``ProductSource`` implementation for Kaspi.kz."""
 
 from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
+from market_sources.cities import kaspi_city_id, resolve_city
 from market_sources.kaspi.client import DEFAULT_CITY, KaspiClient
 from market_sources.kaspi.parse import (
     parse_offers,
@@ -21,6 +22,10 @@ class KaspiSource:
     Fashion variants ("15358806b") answer offers/reviews/specs only under their
     ``configSku``. ``search`` remembers product_id -> configSku, so the other
     methods keep taking the numeric ``product_id`` callers already hold.
+
+    ``city`` is a Kaspi cityId or a city name (``market_sources.cities``).
+    Offers depend on the city, so ``offers`` asks the city ``search`` found the
+    product in.
     """
 
     name = "kaspi"
@@ -29,12 +34,22 @@ class KaspiSource:
         self._client = client or KaspiClient(proxy=proxy)
         self._city_clients: dict[str, KaspiClient] = {}
         self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
+        self._product_cities: dict[str, str] = {}  # product_id -> cityId, from search
 
-    async def search(self, query: str, city: str | None = None) -> list[RawProduct]:
-        """Search Kaspi.kz for products matching ``query`` in ``city``."""
+    async def search(
+        self, query: str, city: str | None = None, budget: int | None = None
+    ) -> list[RawProduct]:
+        """Search Kaspi.kz for products matching ``query`` in ``city``.
+
+        ``budget`` is a server-side price ceiling rounded up to Kaspi's price
+        bucket (see ``kaspi.client.PRICE_BUCKETS``): filter exactly yourself.
+        """
         client = self._client_for_city(city)
-        products = parse_search(await client.search(query))
+        # Only pass budget when set, so an injected client without it keeps working.
+        extra = {} if budget is None else {"budget": budget}
+        products = parse_search(await client.search(query, **extra))
         for product in products:
+            self._product_cities[product.product_id] = client.city
             if product.review_id and product.review_id != product.product_id:
                 self._api_ids[product.product_id] = product.review_id
         return products
@@ -43,9 +58,13 @@ class KaspiSource:
         """The id Kaspi's per-product endpoints want: explicit, remembered, or as-is."""
         return explicit or self._api_ids.get(str(product_id), str(product_id))
 
-    async def offers(self, product_id: str) -> list[RawOffer]:
-        """Return seller offers for ``product_id``."""
-        payload = await self._client.offers(self._api_id(product_id))
+    async def offers(self, product_id: str, *, city: str | None = None) -> list[RawOffer]:
+        """Return seller offers for ``product_id`` in ``city``.
+
+        Without ``city``, the city ``search`` found the product in, else the default.
+        """
+        client = self._client_for_city(city or self._product_cities.get(str(product_id)))
+        payload = await client.offers(self._api_id(product_id))
         return parse_offers(payload, product_id)
 
     async def reviews(
@@ -91,6 +110,7 @@ class KaspiSource:
         Extra clients are cached per city (their pacing budget stays separate —
         the same trade-off the original made) and closed by :meth:`aclose`.
         """
+        city = resolve_city(city, kaspi_city_id)
         if city is None or city == self._client.city:
             return self._client
         if city not in self._city_clients:

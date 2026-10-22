@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 import httpx
+import pytest
 from fakes import LowRng, RecordingSleep, ScriptedTransport
 
 from market_sources.base import RawReviewStats
@@ -403,8 +404,9 @@ class StubKaspiClient:
         self.city = city
         self.calls: list[tuple[str, object]] = []
 
-    async def search(self, query, page=0, sort="relevance"):
+    async def search(self, query, page=0, sort="relevance", budget=None):
         self.calls.append(("search", query))
+        self.budget = budget
         return {"data": {"cards": [card()]}}
 
     async def offers(self, product_id):
@@ -657,7 +659,7 @@ async def test_reviews_still_returns_only_the_list():
 async def test_variant_calls_use_the_config_sku_remembered_from_search():
     stub = StubKaspiClient()
 
-    async def search(query, page=0, sort="relevance"):
+    async def search(query, page=0, sort="relevance", budget=None):
         return {"data": {"cards": [FASHION_CARD]}}
 
     stub.search = search
@@ -696,3 +698,73 @@ async def test_negative_requests_the_negative_filter_with_a_larger_limit():
     assert stub.review_kwargs == {"limit": NEGATIVE_LIMIT, "filter": "NEGATIVE"}
     await source.reviews("123456")
     assert stub.review_kwargs == {}
+
+
+# ------------------------------------------------------------- budget and city
+
+
+async def test_a_budget_selects_every_price_bucket_up_to_it():
+    client, transport = kaspi_client()
+    await client.search("x", budget=60_000)
+    assert dict(transport.requests[0].url.params)["q"] == (
+        ":price:до 10 000 т:price:10 000 - 49 999 т:price:50 000 - 99 999 т"
+    )
+
+
+async def test_no_budget_or_one_above_every_bucket_sends_no_price_filter():
+    client, transport = kaspi_client()
+    await client.search("x")
+    await client.search("x", budget=500_000)
+    assert ["q" in dict(r.url.params) for r in transport.requests] == [False, False]
+
+
+async def test_a_budget_on_a_bucket_edge_includes_that_bucket():
+    client, transport = kaspi_client()
+    for budget in (49_999, 50_000, -1):
+        await client.search("x", budget=budget)
+    edges = [dict(r.url.params)["q"].count(":price:") for r in transport.requests]
+    assert edges == [2, 3, 1]
+
+
+async def test_an_injected_client_without_budget_still_searches():
+    class OldClient(StubKaspiClient):
+        async def search(self, query, page=0, sort="relevance"):
+            return {"data": {"cards": [card()]}}
+
+    assert len(await KaspiSource(client=OldClient()).search("x")) == 1
+
+
+def test_an_unknown_city_name_is_an_error_not_an_id():
+    source = KaspiSource(client=StubKaspiClient())
+    with pytest.raises(ValueError, match="Алмата"):
+        source._client_for_city("Алмата")
+    assert source._client_for_city("") is source._client
+
+
+async def test_the_source_passes_the_budget_to_the_client():
+    stub = StubKaspiClient()
+    await KaspiSource(client=stub).search("x", budget=30_000)
+    assert stub.budget == 30_000
+
+
+def test_a_city_name_resolves_to_its_kaspi_id():
+    source = KaspiSource(client=StubKaspiClient())
+    assert source._client_for_city("Алматы") is source._client
+    assert source._client_for_city("Шымкент").city == "511010000"
+
+
+async def test_offers_come_from_the_city_the_product_was_found_in():
+    source = KaspiSource(client=StubKaspiClient())
+    shymkent = source._city_clients["511010000"] = StubKaspiClient(city="511010000")
+    await source.search("x", city="Шымкент")
+    await source.offers("123456")
+    await source.offers("999")  # never searched: the default city
+    assert ("offers", "123456") in shymkent.calls
+    assert ("offers", "999") in source._client.calls
+
+
+async def test_an_explicit_city_wins_for_offers():
+    source = KaspiSource(client=StubKaspiClient())
+    astana = source._city_clients["710000000"] = StubKaspiClient(city="710000000")
+    await source.offers("123456", city="710000000")
+    assert astana.calls == [("offers", "123456")]

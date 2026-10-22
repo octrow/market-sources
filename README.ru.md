@@ -24,6 +24,8 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/demo.gif" alt="Терминал: examples/kaspi_demo.py ищет на Kaspi.kz «iphone 15» за 1,5 с и выводит пять самых дешёвых из 32 предложений с продавцом, рейтингом и доставкой" width="760"></p>
 
+## Пример
+
 ```python
 import asyncio
 from market_sources import KaspiSource
@@ -72,7 +74,7 @@ Python 3.12+. Зависимости — `httpx` и `pydantic`. Необязат
 
 | источник | откуда данные | что нужно | заметки |
 |---|---|---|---|
-| `KaspiSource` | внутренний JSON API Kaspi через `PoliteClient` | базовая установка | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; прокси через переменную `KASPI_PROXY` |
+| `KaspiSource` | внутренний JSON API Kaspi через `PoliteClient` | базовая установка | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; прокси через переменную `KASPI_PROXY`. `search(query, city, budget)`: Kaspi фильтрует цену только фиксированными диапазонами, поэтому бюджет 15 000 ₸ вернёт карточки до 49 999 ₸; точный фильтр за вами. `offers` спрашивает город, в котором товар нашёлся |
 | `OlxSource` | публичный JSON API OLX | extra `impersonate` | CloudFront отбивает TLS-отпечаток httpx; если стоит `curl_cffi`, клиент сам притворяется Chrome (в запуске выше поиск занял 1.9 с и вернул 63 объявления). OLX отдаёт не больше 1000 результатов на поиск; `search_all(query, min_price, max_price)` делит ценовой диапазон, пока каждый кусок не влезет, и выкачивает все страницы (2180 объявлений за 100–160k ₸ за 40 с) |
 | `OzonSource` | composer API Ozon, читается через настоящий браузер | extra `browser` | сессия сохраняется в `OZON_STATE_PATH` (по умолчанию `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` меняет хост |
 | `KimovilSource` | JSON автодополнения kimovil.com + серверная страница характеристик | extra `kimovil` | не `ProductSource`, а справочник характеристик. `lookup(title)` превращает заголовок с маркетплейса («Смартфон Samsung Galaxy S24 Ultra 12/256GB») в характеристики модели и индекс Kimovil (0–100). Cloudflare ставит челлендж headless Chromium, curl_cffi получает страницу |
@@ -86,6 +88,9 @@ class ProductSource(Protocol):
     async def reviews(self, product_id: str) -> list[RawReview]: ...
     async def specs(self, product_id: str) -> dict[str, str]: ...
 ```
+
+`city` принимает id площадки или название города: `market_sources.cities` знает 21 город (по-русски или
+латиницей) и их id на Kaspi и OLX (`kaspi_city_id("Шымкент")` → `"511010000"`). Ozon город не учитывает.
 
 ## Модули
 

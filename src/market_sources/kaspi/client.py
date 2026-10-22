@@ -31,6 +31,21 @@ MAX_DELAY_S = 1.5
 TIMEOUT_S = 10.0
 MAX_RETRIES = 1
 
+# Kaspi filters price only by these fixed buckets (lower bound, label), the same
+# for every category checked live. A budget selects each bucket starting at or
+# below it, so the ceiling is the top of the budget's bucket, not the budget.
+# ponytail: hardcoded labels; read them from the response's price filter if
+# Kaspi ever renames them.
+PRICE_BUCKETS = (
+    (0, "до 10 000 т"),
+    (10_000, "10 000 - 49 999 т"),
+    (50_000, "50 000 - 99 999 т"),
+    (100_000, "100 000 - 149 999 т"),
+    (150_000, "150 000 - 199 999 т"),
+    (200_000, "200 000 - 499 999 т"),
+    (500_000, "более 500 000 т"),
+)
+
 
 class KaspiClient:
     """Thin async wrapper around the Kaspi.kz internal API."""
@@ -66,9 +81,25 @@ class KaspiClient:
     def _product_referer(self, product_id: str) -> str:
         return f"{BASE_URL}/shop/p/-{product_id}/?c={self.city}"
 
-    async def search(self, query: str, page: int = 0, sort: str = "relevance") -> Any:
-        """Call ``GET /yml/product-view/pl/filters`` and return decoded JSON."""
-        params = {"text": query, "page": page, "c": self.city, "ui": "d", "sort": sort}
+    async def search(
+        self, query: str, page: int = 0, sort: str = "relevance", budget: int | None = None
+    ) -> Any:
+        """Call ``GET /yml/product-view/pl/filters`` and return decoded JSON.
+
+        ``budget`` becomes Kaspi's price filter (``q=:price:<bucket>...``), see
+        ``PRICE_BUCKETS``. A budget that every bucket fits sends no filter.
+        """
+        params: dict[str, object] = {
+            "text": query,
+            "page": page,
+            "c": self.city,
+            "ui": "d",
+            "sort": sort,
+        }
+        if budget is not None and budget < PRICE_BUCKETS[-1][0]:
+            params["q"] = "".join(
+                f":price:{label}" for low, label in PRICE_BUCKETS if low <= max(budget, 0)
+            )
         return await self.http.get_json(
             f"{BASE_URL}/yml/product-view/pl/filters",
             params=params,
@@ -130,4 +161,4 @@ class KaspiClient:
         await self.http.aclose()
 
 
-__all__ = ["BASE_URL", "DEFAULT_CITY", "USER_AGENT", "KaspiClient"]
+__all__ = ["BASE_URL", "DEFAULT_CITY", "PRICE_BUCKETS", "USER_AGENT", "KaspiClient"]

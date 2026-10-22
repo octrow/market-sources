@@ -23,6 +23,8 @@ Under the adapters sit two reusable layers: `PoliteClient`, a paced, retrying as
 
 <p align="center"><img src="https://raw.githubusercontent.com/octrow/market-sources/main/docs/demo.gif" alt="Terminal: examples/kaspi_demo.py searches Kaspi.kz for &quot;iphone 15&quot; in 1.5 s and prints the five cheapest of 32 offers with seller, rating and delivery" width="760"></p>
 
+## Example
+
 ```python
 import asyncio
 from market_sources import KaspiSource
@@ -71,7 +73,7 @@ Python 3.12+. Runtime dependencies are `httpx` and `pydantic`. Optional extras a
 
 | source | how it gets data | needs | notes |
 |---|---|---|---|
-| `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy |
+| `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy. `search(query, city, budget)`: Kaspi filters price only by fixed buckets, so a budget of 15 000 ₸ returns cards up to 49 999 ₸; filter exactly yourself. `offers` asks the city the product was found in |
 | `OlxSource` | OLX's public JSON API | `impersonate` extra | CloudFront rejects httpx's TLS fingerprint; with `curl_cffi` installed the client impersonates Chrome automatically (a search took 1.9 s and returned 63 listings in the run above). OLX caps a search at 1000 results; `search_all(query, min_price, max_price)` splits the price range until each slice fits and fetches every page (2180 listings for 100k–160k ₸ in 40 s) |
 | `OzonSource` | Ozon's composer API, read through a real browser | `browser` extra | session saved to `OZON_STATE_PATH` (default `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` overrides the host |
 | `KimovilSource` | kimovil.com autocomplete JSON + server-rendered specs page | `kimovil` extra | not a `ProductSource`: a spec reference. `lookup(title)` turns a marketplace title ("Смартфон Samsung Galaxy S24 Ultra 12/256GB") into the model's specs and Kimovil index (0–100). Cloudflare challenges headless Chromium; curl_cffi gets the page |
@@ -85,6 +87,9 @@ class ProductSource(Protocol):
     async def reviews(self, product_id: str) -> list[RawReview]: ...
     async def specs(self, product_id: str) -> dict[str, str]: ...
 ```
+
+`city` takes the site's own id or a city name: `market_sources.cities` maps 21 cities (Russian or Latin
+names) to Kaspi and OLX ids (`kaspi_city_id("Шымкент")` → `"511010000"`). Ozon ignores the city.
 
 ## Modules
 

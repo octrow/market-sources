@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from market_sources.base import RawOffer, RawProduct, RawReview
+from market_sources.cities import olx_city_id, resolve_city
 from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
 
@@ -150,6 +151,8 @@ class OlxSource:
         return offer
 
     def _client_for_city(self, city: str | None) -> OlxClient:
+        """A client for ``city`` (an OLX city_id or a city name), cached per city."""
+        city = resolve_city(city, olx_city_id)
         if city is None or city == self._client.city_id:
             return self._client
         if city not in self._city_clients:

@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `KaspiSource.search(budget=...)` and `KaspiClient.search(budget=...)`: a server-side price ceiling. Kaspi filters price only by fixed buckets
+  (`kaspi.client.PRICE_BUCKETS`), so the ceiling is the top of the budget's bucket (15 000 ₸ → up to 49 999 ₸).
+- `market_sources.cities`: `kaspi_city_id` / `olx_city_id` map 21 Kazakhstan cities (Russian or Latin names,
+  "Нур-Султан" too) to each site's id, all checked live. `KaspiSource` and `OlxSource` accept a city name as
+  `city`, as well as an id; an unknown name raises `ValueError` instead of being sent as an id.
+- `KaspiSource.offers(product_id, city=...)`.
+
+### Fixed
+
+- `KaspiSource.offers` asked Almaty for every product, even one found by `search(city=...)` in another city, so
+  sellers and delivery dates were Almaty's. It now asks the city the product was found in
+  (a separate per-city client, with its own pacing, as `search` already used).
+
 ## [0.4.0] - 2026-10-22
 
 ### Added
