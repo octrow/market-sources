@@ -289,57 +289,63 @@ async def test_a_zero_idle_timeout_schedules_nothing():
 # ------------------------------------------------------- playwright driver leak
 
 
+class FakeContext:
+    async def new_page(self):
+        return FakePage()
+
+    async def close(self):
+        pass
+
+
+class FakeBrowser:
+    def is_connected(self):
+        return True
+
+    def on(self, _event, _cb):
+        pass
+
+    async def new_context(self, **_kw):
+        return FakeContext()
+
+    async def close(self):
+        pass
+
+
+class FakeDriver:
+    def __init__(self):
+        self.stopped = False
+        self.chromium = self
+
+    async def launch(self, **_kw):
+        return FakeBrowser()
+
+    async def stop(self):
+        self.stopped = True
+
+
+class FakeApi:
+    """Stands in for ``playwright.async_api``; records every driver it starts."""
+
+    def __init__(self) -> None:
+        self.drivers: list[FakeDriver] = []
+
+    def async_playwright(self):
+        return self
+
+    async def start(self):
+        self.drivers.append(FakeDriver())
+        return self.drivers[-1]
+
+
 async def test_a_crashed_browser_relaunch_stops_the_old_playwright_driver(monkeypatch):
     import market_sources.playwright_session as mod
 
-    drivers: list = []
-
-    class FakeContext:
-        async def new_page(self):
-            return FakePage()
-
-        async def close(self):
-            pass
-
-    class FakeBrowser:
-        def is_connected(self):
-            return True
-
-        def on(self, _event, _cb):
-            pass
-
-        async def new_context(self, **_kw):
-            return FakeContext()
-
-        async def close(self):
-            pass
-
-    class FakeDriver:
-        def __init__(self):
-            self.stopped = False
-            self.chromium = self
-
-        async def launch(self, **_kw):
-            return FakeBrowser()
-
-        async def stop(self):
-            self.stopped = True
-
-    class FakeStarter:
-        async def start(self):
-            drivers.append(FakeDriver())
-            return drivers[-1]
-
-    class FakeApi:
-        @staticmethod
-        def async_playwright():
-            return FakeStarter()
-
-    monkeypatch.setattr(mod, "_pw_api", FakeApi())
+    api = FakeApi()
+    monkeypatch.setattr(mod, "_pw_api", api)
     sess = BrowserSession(idle_timeout_s=0)
     await sess._open_page()
     sess._on_disconnect(None)  # browser crashed; the driver is still running
     await sess._open_page()
-    assert [d.stopped for d in drivers] == [True, False]
+    assert [d.stopped for d in api.drivers] == [True, False]
     await sess.aclose()
-    assert drivers[1].stopped is True
+    assert api.drivers[1].stopped is True
