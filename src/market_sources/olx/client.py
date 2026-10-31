@@ -40,10 +40,13 @@ class OlxClient:
         self,
         city_id: str = DEFAULT_CITY_ID,
         *,
+        region_id: str | None = None,
         proxy: str | None = None,
         http: PoliteClient | None = None,
     ) -> None:
         self.city_id = city_id
+        # Set: search the whole region (the city's oblast, villages around it too).
+        self.region_id = region_id
         self.http = http or PoliteClient(
             user_agent=USER_AGENT,
             max_concurrency=MAX_CONCURRENCY,
@@ -72,8 +75,11 @@ class OlxClient:
             "offset": offset,
             "limit": limit,
             "query": query,
-            "city_id": self.city_id,
         }
+        if self.region_id:
+            params["region_id"] = self.region_id
+        else:
+            params["city_id"] = self.city_id
         if min_price is not None:
             params["filter_float_price:from"] = min_price
         if budget is not None:

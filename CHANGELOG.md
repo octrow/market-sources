@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `OlxSource.search(region=True)` and `OlxClient(region_id=...)`: the city's whole oblast, villages around the city
+  too (Алматы → Алматинская область, region 8, Коксай and Есик included). `market_sources.cities.olx_region_id`
+  maps a city name or OLX city_id to its region; the 21 regions were checked live.
+
 - `KaspiSource.search(page=..., filters=...)` and `KaspiClient.search(filters=...)`: the second page of results
   (Kaspi answers pages 0 and 1 without a login) and facet filters such as `":Dishwashers*Height:менее 75 см"`.
 - `KaspiSource.facets(query, city)` and `kaspi.parse.parse_facets`: the facets of the last search (title → row ids),

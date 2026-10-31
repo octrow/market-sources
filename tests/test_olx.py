@@ -302,6 +302,21 @@ async def test_no_second_page_when_the_target_is_already_met():
     assert len(stub.searches) == 1
 
 
+async def test_a_region_client_sends_region_id_instead_of_city_id():
+    client, transport = olx_client(region_id="8")
+    await client.search("x")
+    params = dict(transport.requests[0].url.params)
+    assert params["region_id"] == "8" and "city_id" not in params
+
+
+def test_a_region_search_uses_the_citys_oblast_client():
+    source = OlxSource(client=StubOlxClient())
+    almaty = source._client_for_region(None)
+    assert isinstance(almaty, OlxClient) and almaty.region_id == "8"
+    assert source._client_for_region("Шымкент").region_id == "6"
+    assert source._client_for_region("Шымкент") is source._client_for_region("47")
+
+
 def test_a_different_city_builds_a_separate_client():
     source = OlxSource(client=StubOlxClient())
     other = source._client_for_city("2")

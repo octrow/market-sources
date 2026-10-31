@@ -2,7 +2,7 @@
 
 import pytest
 
-from market_sources.cities import kaspi_city_id, olx_city_id, resolve_city
+from market_sources.cities import kaspi_city_id, olx_city_id, olx_region_id, resolve_city
 
 
 def test_a_city_name_resolves_in_russian_or_latin_any_case():
@@ -29,3 +29,10 @@ def test_resolve_city_passes_ids_through_and_rejects_unknown_names():
     assert resolve_city(None, kaspi_city_id) is None
     with pytest.raises(ValueError):
         resolve_city("Atlantis", olx_city_id)
+
+
+def test_a_city_name_or_olx_id_gives_its_olx_region():
+    assert olx_region_id("Алматы") == "8"
+    assert olx_region_id("1") == "8"
+    assert olx_region_id("Нур-Султан") == "13"
+    assert olx_region_id("Конаев") is None

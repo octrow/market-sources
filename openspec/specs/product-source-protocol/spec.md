@@ -75,6 +75,25 @@ was found in unless the caller passes `city`.
 - **THEN** `q` holds the buckets up to "50 000 - 99 999 т"; with no budget or one of 600 000 there is no `q`
 - **Anchor**: `tests/test_kaspi.py::test_a_budget_selects_every_price_bucket_up_to_it`
 
+### Requirement: OLX search by region
+
+OLX `search(region=True)` MUST send the `region_id` of the city's oblast
+(`olx_region_id`, by city name or OLX city_id) instead of `city_id`, so ads from
+the villages around the city come too; a city without a known region MUST be
+searched by its `city_id` as before.
+
+#### Scenario: a region client sends region_id
+
+- **WHEN** an `OlxClient(region_id="8")` searches
+- **THEN** the request carries `region_id=8` and no `city_id`
+- **Anchor**: `tests/test_olx.py::test_a_region_client_sends_region_id_instead_of_city_id`
+
+#### Scenario: a region search picks the city's oblast
+
+- **WHEN** `OlxSource` searches by region for the default city, "Шымкент" or its id "47"
+- **THEN** the client's region is "8" for Almaty and "6" for Shymkent, one client per region
+- **Anchor**: `tests/test_olx.py::test_a_region_search_uses_the_citys_oblast_client`
+
 ### Requirement: Kaspi search pages and facet filters
 
 Kaspi `search(page=..., filters=...)` MUST send the page and append the facet

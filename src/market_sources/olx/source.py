@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from market_sources.base import RawOffer, RawProduct, RawReview
-from market_sources.cities import olx_city_id, resolve_city
+from market_sources.cities import olx_city_id, olx_region_id, resolve_city
 from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
 
@@ -47,15 +47,23 @@ class OlxSource:
                 self._offer_cache[str(offer_id)] = offer
 
     async def search(
-        self, query: str, city: str | None = None, budget: int | None = None
+        self,
+        query: str,
+        city: str | None = None,
+        budget: int | None = None,
+        *,
+        region: bool = False,
     ) -> list[RawProduct]:
         """Search OLX.kz for listings matching ``query`` (Almaty by default).
+
+        ``region``: the city's whole oblast (``olx_region_id``), villages around the
+        city too; a city without a known region searches the city alone.
 
         Passes ``budget`` through as a server-side ``filter_float_price:to`` and
         paginates one extra page when OLX caps the first page below the target,
         so we approach ~50 listings when that many exist.
         """
-        client = self._client_for_city(city)
+        client = self._client_for_region(city) if region else self._client_for_city(city)
         payload = await client.search(query, budget=budget)
         self._cache_offers(payload)
         products = parse_search(payload)
@@ -149,6 +157,17 @@ class OlxSource:
         if offer:
             self._offer_cache[product_id] = offer
         return offer
+
+    def _client_for_region(self, city: str | None) -> OlxClient:
+        """A client for the region of ``city`` (default: the default client's city)."""
+        region = olx_region_id(resolve_city(city, olx_city_id) or self._client.city_id)
+        if region is None:
+            return self._client_for_city(city)
+        key = f"region:{region}"
+        if key not in self._city_clients:
+            proxy = getattr(getattr(self._client, "http", None), "proxy", None)
+            self._city_clients[key] = OlxClient(region_id=region, proxy=proxy)
+        return self._city_clients[key]
 
     def _client_for_city(self, city: str | None) -> OlxClient:
         """A client for ``city`` (an OLX city_id or a city name), cached per city."""
