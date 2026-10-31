@@ -15,6 +15,7 @@ from fakes import LowRng, RecordingSleep, ScriptedTransport
 from market_sources.base import RawReviewStats
 from market_sources.kaspi.client import BASE_URL, DEFAULT_CITY, USER_AGENT, KaspiClient
 from market_sources.kaspi.parse import (
+    parse_facets,
     parse_offers,
     parse_review_stats,
     parse_reviews,
@@ -724,6 +725,43 @@ async def test_a_budget_on_a_bucket_edge_includes_that_bucket():
         await client.search("x", budget=budget)
     edges = [dict(r.url.params)["q"].count(":price:") for r in transport.requests]
     assert edges == [2, 3, 1]
+
+
+async def test_filters_join_the_price_in_q():
+    client, transport = kaspi_client()
+    await client.search("x", filters=":Dishwashers*Height:менее 75 см")
+    await client.search("x", budget=30_000, filters=":Dishwashers*Width:40 см")
+    first, second = (dict(r.url.params).get("q") for r in transport.requests)
+    assert first == ":Dishwashers*Height:менее 75 см"
+    assert second.startswith(":price:") and second.endswith(":Dishwashers*Width:40 см")
+
+
+def test_parse_facets_maps_titles_to_row_ids():
+    payload = {
+        "data": {
+            "filters": [
+                {"title": "Высота", "rows": [{"id": ":D*Height:82 см", "title": "82 см"}]},
+                {"title": "Пусто", "rows": []},
+            ]
+        }
+    }
+    assert parse_facets(payload) == {"Высота": [(":D*Height:82 см", "82 см")]}
+    assert parse_facets({}) == {}
+
+
+async def test_the_source_remembers_facets_and_passes_page_and_filters():
+    class FacetClient(StubKaspiClient):
+        async def search(self, query, page=0, sort="relevance", budget=None, filters=""):
+            self.page, self.filters = page, filters
+            row = {"id": ":D*Height:45 см", "title": "45 см"}
+            return {"data": {"cards": [card()], "filters": [{"title": "Высота", "rows": [row]}]}}
+
+    stub = FacetClient()
+    source = KaspiSource(client=stub)
+    await source.search("x", page=1, filters=":D*Width:40 см")
+    assert (stub.page, stub.filters) == (1, ":D*Width:40 см")
+    assert source.facets("x") == {"Высота": [(":D*Height:45 см", "45 см")]}
+    assert source.facets("other") == {}
 
 
 async def test_an_injected_client_without_budget_still_searches():

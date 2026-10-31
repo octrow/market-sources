@@ -82,12 +82,19 @@ class KaspiClient:
         return f"{BASE_URL}/shop/p/-{product_id}/?c={self.city}"
 
     async def search(
-        self, query: str, page: int = 0, sort: str = "relevance", budget: int | None = None
+        self,
+        query: str,
+        page: int = 0,
+        sort: str = "relevance",
+        budget: int | None = None,
+        filters: str = "",
     ) -> Any:
         """Call ``GET /yml/product-view/pl/filters`` and return decoded JSON.
 
         ``budget`` becomes Kaspi's price filter (``q=:price:<bucket>...``), see
         ``PRICE_BUCKETS``. A budget that every bucket fits sends no filter.
+        ``filters`` are facet row ids (``parse_facets``) joined as they are,
+        e.g. ``":Dishwashers*Height:менее 75 см"``; they go into ``q`` after the price.
         """
         params: dict[str, object] = {
             "text": query,
@@ -96,10 +103,13 @@ class KaspiClient:
             "ui": "d",
             "sort": sort,
         }
+        price = ""
         if budget is not None and budget < PRICE_BUCKETS[-1][0]:
-            params["q"] = "".join(
+            price = "".join(
                 f":price:{label}" for low, label in PRICE_BUCKETS if low <= max(budget, 0)
             )
+        if price or filters:
+            params["q"] = price + filters
         return await self.http.get_json(
             f"{BASE_URL}/yml/product-view/pl/filters",
             params=params,

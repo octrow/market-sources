@@ -128,6 +128,23 @@ def parse_search(payload: dict) -> list[RawProduct]:
     return products
 
 
+def parse_facets(payload: dict) -> dict[str, list[tuple[str, str]]]:
+    """A search response's facets: title ("Высота") -> [(row id, row title)].
+
+    A row id goes back into ``KaspiClient.search(filters=...)`` as it is.
+    """
+    facets: dict[str, list[tuple[str, str]]] = {}
+    for facet in (payload.get("data") or {}).get("filters") or []:
+        rows = [
+            (row["id"], row["title"])
+            for row in facet.get("rows") or []
+            if isinstance(row.get("id"), str) and isinstance(row.get("title"), str)
+        ]
+        if isinstance(facet.get("title"), str) and rows:
+            facets[facet["title"]] = rows
+    return facets
+
+
 def _delivery_option(offer: dict) -> dict | None:
     """The offer's delivery option matching its ``deliveryType``, else the fallback order."""
     options = offer.get("deliveryOptions")

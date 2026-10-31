@@ -4,6 +4,7 @@ from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
 from market_sources.cities import kaspi_city_id, resolve_city
 from market_sources.kaspi.client import DEFAULT_CITY, KaspiClient
 from market_sources.kaspi.parse import (
+    parse_facets,
     parse_offers,
     parse_review_stats,
     parse_reviews,
@@ -35,24 +36,43 @@ class KaspiSource:
         self._city_clients: dict[str, KaspiClient] = {}
         self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
         self._product_cities: dict[str, str] = {}  # product_id -> cityId, from search
+        self._facets: dict[tuple[str, str], dict[str, list[tuple[str, str]]]] = {}
 
     async def search(
-        self, query: str, city: str | None = None, budget: int | None = None
+        self,
+        query: str,
+        city: str | None = None,
+        budget: int | None = None,
+        *,
+        page: int = 0,
+        filters: str = "",
     ) -> list[RawProduct]:
         """Search Kaspi.kz for products matching ``query`` in ``city``.
 
         ``budget`` is a server-side price ceiling rounded up to Kaspi's price
         bucket (see ``kaspi.client.PRICE_BUCKETS``): filter exactly yourself.
+        ``page`` counts from 0; Kaspi answers only pages 0 and 1 (12 cards each)
+        without a login. ``filters``: facet row ids from ``facets``.
         """
         client = self._client_for_city(city)
-        # Only pass budget when set, so an injected client without it keeps working.
-        extra = {} if budget is None else {"budget": budget}
-        products = parse_search(await client.search(query, **extra))
+        # Only pass what is set, so an injected client without these keeps working.
+        extra: dict[str, object] = {"budget": budget} if budget is not None else {}
+        if page:
+            extra["page"] = page
+        if filters:
+            extra["filters"] = filters
+        payload = await client.search(query, **extra)
+        self._facets[(query, client.city)] = parse_facets(payload)
+        products = parse_search(payload)
         for product in products:
             self._product_cities[product.product_id] = client.city
             if product.review_id and product.review_id != product.product_id:
                 self._api_ids[product.product_id] = product.review_id
         return products
+
+    def facets(self, query: str, city: str | None = None) -> dict[str, list[tuple[str, str]]]:
+        """Facets of the last ``search`` for ``query`` in ``city``: title -> [(row id, title)]."""
+        return self._facets.get((query, self._client_for_city(city).city), {})
 
     def _api_id(self, product_id: str, explicit: str | None = None) -> str:
         """The id Kaspi's per-product endpoints want: explicit, remembered, or as-is."""

@@ -75,6 +75,25 @@ was found in unless the caller passes `city`.
 - **THEN** `q` holds the buckets up to "50 000 - 99 999 т"; with no budget or one of 600 000 there is no `q`
 - **Anchor**: `tests/test_kaspi.py::test_a_budget_selects_every_price_bucket_up_to_it`
 
+### Requirement: Kaspi search pages and facet filters
+
+Kaspi `search(page=..., filters=...)` MUST send the page and append the facet
+row ids to `q` after the price buckets. Every Kaspi search MUST remember the
+response's facets (title -> row id and title), and `facets(query, city)` MUST
+return those of the last search for that query and city, or an empty dict.
+
+#### Scenario: facet filters go into q after the price
+
+- **WHEN** Kaspi is searched with `filters=":Dishwashers*Height:менее 75 см"`, with and without a budget
+- **THEN** `q` is the filter alone, or the price buckets followed by the filter
+- **Anchor**: `tests/test_kaspi.py::test_filters_join_the_price_in_q`
+
+#### Scenario: the source remembers the facets of a search
+
+- **WHEN** `KaspiSource.search("x", page=1, filters=...)` answers with a "Высота" facet
+- **THEN** the client got that page and filter, and `facets("x")` returns the facet; another query gives `{}`
+- **Anchor**: `tests/test_kaspi.py::test_the_source_remembers_facets_and_passes_page_and_filters`
+
 #### Scenario: offers follow the search city
 
 - **WHEN** a product was found by `search(city="Шымкент")` and `offers` is called with its id alone

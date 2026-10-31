@@ -5,6 +5,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `KaspiSource.search(page=..., filters=...)` and `KaspiClient.search(filters=...)`: the second page of results
+  (Kaspi answers pages 0 and 1 without a login) and facet filters such as `":Dishwashers*Height:менее 75 см"`.
+- `KaspiSource.facets(query, city)` and `kaspi.parse.parse_facets`: the facets of the last search (title → row ids),
+  so a caller can narrow the next search by "Высота", "Ширина" and the like.
+
 ## [0.5.0] - 2026-10-22
 
 ### Added
