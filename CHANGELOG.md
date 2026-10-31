@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `OlxSource.search_cheapest(query, ..., category_id=..., limit=...)`: listings cheapest first, page by page,
+  free ones skipped; `OlxClient.search(sort_by=..., category_id=...)`; `OlxSource.category_of(product_id)`. A broad
+  query around a city has hundreds of ads: the relevance order shows only ~50, the bargains are further down.
+
 - `OlxSource.search(region=True)` and `OlxClient(region_id=...)`: the city's whole oblast, villages around the city
   too (Алматы → Алматинская область, region 8, Коксай and Есик included). `market_sources.cities.olx_region_id`
   maps a city name or OLX city_id to its region; the 21 regions were checked live.

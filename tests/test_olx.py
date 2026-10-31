@@ -302,6 +302,23 @@ async def test_no_second_page_when_the_target_is_already_met():
     assert len(stub.searches) == 1
 
 
+async def test_cheapest_first_pages_in_price_order_within_a_category():
+    client, transport = olx_client(region_id="8")
+    source = OlxSource(client=client)
+    await source.search_cheapest("посудомоечная машина", category_id="380", limit=50)
+    params = dict(transport.requests[0].url.params)
+    assert params["sort_by"] == "filter_float_price:asc"
+    assert params["category_id"] == "380"
+    assert params["filter_float_price:from"] == "1"
+
+
+def test_a_listing_remembers_its_category():
+    source = OlxSource(client=StubOlxClient())
+    source._cache_offers({"data": [{"id": 7, "category": {"id": 380}}]})
+    assert source.category_of("7") == "380"
+    assert source.category_of("8") is None
+
+
 async def test_a_region_client_sends_region_id_instead_of_city_id():
     client, transport = olx_client(region_id="8")
     await client.search("x")

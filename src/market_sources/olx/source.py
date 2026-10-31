@@ -6,7 +6,7 @@ from typing import Any
 
 from market_sources.base import RawOffer, RawProduct, RawReview
 from market_sources.cities import olx_city_id, olx_region_id, resolve_city
-from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, OlxClient
+from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, PRICE_ASC, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
 
 logger = logging.getLogger(__name__)
@@ -77,6 +77,48 @@ class OlxSource:
             "OLX fetched %d listings for %r (total available: %s)", len(products), query, total
         )
         return products
+
+    async def search_cheapest(
+        self,
+        query: str,
+        city: str | None = None,
+        budget: int | None = None,
+        *,
+        region: bool = False,
+        category_id: str | None = None,
+        limit: int = 200,
+    ) -> list[RawProduct]:
+        """Up to ``limit`` priced listings for ``query``, cheapest first, page by page.
+
+        A broad query ("посудомоечная машина": 500+ ads around Алматы) sorted by
+        relevance shows only its first ~50; cheapest first reaches the bargains a
+        relevance page leaves out. Without ``category_id`` the cheap end is houses and
+        services the fuzzy search matched: pass the category (``category_of``).
+        Free listings (price 0) are skipped.
+        """
+        client = self._client_for_region(city) if region else self._client_for_city(city)
+        products: dict[str, RawProduct] = {}
+        for offset in range(0, min(limit, OLX_RESULT_CAP), DEFAULT_LIMIT):
+            page = await client.search(
+                query,
+                offset=offset,
+                budget=budget,
+                min_price=1,
+                sort_by=PRICE_ASC,
+                category_id=category_id,
+            )
+            self._cache_offers(page)
+            for product in parse_search(page):
+                products.setdefault(product.product_id, product)
+            if len(page.get("data") or []) < DEFAULT_LIMIT // 2:
+                break
+        logger.info("OLX fetched %d cheapest listings for %r", len(products), query)
+        return list(products.values())[:limit]
+
+    def category_of(self, product_id: str) -> str | None:
+        """The OLX category id of a listing a search returned, else None."""
+        category = (self._offer_cache.get(str(product_id)) or {}).get("category") or {}
+        return str(category["id"]) if category.get("id") is not None else None
 
     async def search_all(
         self, query: str, min_price: int, max_price: int, city: str | None = None

@@ -94,6 +94,25 @@ searched by its `city_id` as before.
 - **THEN** the client's region is "8" for Almaty and "6" for Shymkent, one client per region
 - **Anchor**: `tests/test_olx.py::test_a_region_search_uses_the_citys_oblast_client`
 
+### Requirement: OLX cheapest first within a category
+
+`OlxSource.search_cheapest` MUST page through `query` sorted by price ascending
+(`sort_by=filter_float_price:asc`), skipping free listings, within `category_id`
+when given, until `limit` listings or a short page. `category_of(product_id)` MUST
+return the OLX category id of a listing a search returned, else None.
+
+#### Scenario: cheapest first sends the price order and the category
+
+- **WHEN** `search_cheapest("посудомоечная машина", category_id="380")` runs
+- **THEN** the request carries `sort_by=filter_float_price:asc`, `category_id=380` and `filter_float_price:from=1`
+- **Anchor**: `tests/test_olx.py::test_cheapest_first_pages_in_price_order_within_a_category`
+
+#### Scenario: a listing remembers its category
+
+- **WHEN** a search returned a listing of category 380
+- **THEN** `category_of` gives "380" for it and None for an unknown id
+- **Anchor**: `tests/test_olx.py::test_a_listing_remembers_its_category`
+
 ### Requirement: Kaspi search pages and facet filters
 
 Kaspi `search(page=..., filters=...)` MUST send the page and append the facet

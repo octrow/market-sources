@@ -30,6 +30,7 @@ MIN_DELAY_S = 0.5
 MAX_DELAY_S = 1.5
 TIMEOUT_S = 15.0
 MAX_RETRIES = 1
+PRICE_ASC = "filter_float_price:asc"  # OLX's sort_by for cheapest first
 DEFAULT_LIMIT = 50  # OLX caps a single page lower (~40); OlxSource paginates once
 
 
@@ -65,11 +66,15 @@ class OlxClient:
         limit: int = DEFAULT_LIMIT,
         budget: int | None = None,
         min_price: int | None = None,
+        *,
+        sort_by: str | None = None,
+        category_id: str | None = None,
     ) -> Any:
         """Call ``GET /api/v1/offers/`` (query, city filter) and return JSON.
 
         ``budget`` / ``min_price`` become ``filter_float_price:to`` / ``:from``:
-        OLX filters server-side, both bounds inclusive.
+        OLX filters server-side, both bounds inclusive. ``sort_by``: OLX's own order,
+        e.g. ``PRICE_ASC``; ``category_id``: one OLX category (an offer's ``category.id``).
         """
         params: dict[str, object] = {
             "offset": offset,
@@ -84,6 +89,10 @@ class OlxClient:
             params["filter_float_price:from"] = min_price
         if budget is not None:
             params["filter_float_price:to"] = budget
+        if sort_by:
+            params["sort_by"] = sort_by
+        if category_id:
+            params["category_id"] = category_id
         return await self.http.get_json(f"{BASE_URL}/api/v1/offers/", params=params)
 
     async def detail(self, offer_id: str) -> Any:
@@ -95,4 +104,4 @@ class OlxClient:
         await self.http.aclose()
 
 
-__all__ = ["BASE_URL", "DEFAULT_CITY_ID", "DEFAULT_LIMIT", "USER_AGENT", "OlxClient"]
+__all__ = ["BASE_URL", "DEFAULT_CITY_ID", "DEFAULT_LIMIT", "PRICE_ASC", "USER_AGENT", "OlxClient"]
