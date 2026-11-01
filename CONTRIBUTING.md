@@ -13,6 +13,8 @@ cd market-sources
 uv sync --all-extras
 uv run pytest
 uv run ruff check .
+uv run ruff format --check .
+uv run ty check
 ```
 
 The tests use no network, no browser and no real clock, so they run in a few seconds.

@@ -75,8 +75,8 @@ Python 3.12+. Runtime dependencies are `httpx` and `pydantic`. Optional extras a
 
 | source | how it gets data | needs | notes |
 |---|---|---|---|
-| `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy. `search(query, city, budget)`: Kaspi filters price only by fixed buckets, so a budget of 15 000 ₸ returns cards up to 49 999 ₸; filter exactly yourself. `offers` asks the city the product was found in |
-| `OlxSource` | OLX's public JSON API | `impersonate` extra | CloudFront rejects httpx's TLS fingerprint; with `curl_cffi` installed the client impersonates Chrome automatically (a search took 1.9 s and returned 63 listings in the run above). OLX caps a search at 1000 results; `search_all(query, min_price, max_price)` splits the price range until each slice fits and fetches every page (2180 listings for 100k–160k ₸ in 40 s) |
+| `KaspiSource` | Kaspi's internal JSON API over `PoliteClient` | base install | `search`, `offers`, `reviews`, `reviews_with_stats`, `specs`; `KASPI_PROXY` env var for a proxy. `search(query, city, budget)`: Kaspi filters price only by fixed buckets, so a budget of 15 000 ₸ returns cards up to 49 999 ₸; filter exactly yourself. `search(page=1)` is the second page (Kaspi answers pages 0 and 1 without a login); `facets(query, city)` lists the last search's facets, and their row ids go back as `search(filters=...)` (`":Dishwashers*Height:менее 75 см"`). `offers` asks the city the product was found in |
+| `OlxSource` | OLX's public JSON API | `impersonate` extra | CloudFront rejects httpx's TLS fingerprint; with `curl_cffi` installed the client impersonates Chrome automatically (a search took 1.9 s and returned 63 listings in the run above). OLX caps a search at 1000 results; `search_all(query, min_price, max_price)` splits the price range until each slice fits and fetches every page (2180 listings for 100k–160k ₸ in 40 s). `search(region=True)` covers the city's whole oblast, villages around it too. `search_cheapest(query, category_id=..., limit=200)` returns listings cheapest first, free ones skipped: the relevance order shows only ~50 of a broad query's hundreds. `category_of(product_id)` gives the category id of a listing a search returned |
 | `OzonSource` | Ozon's composer API, read through a real browser | `browser` extra | session saved to `OZON_STATE_PATH` (default `~/.config/market_sources/ozon_state.json`); `OZON_BASE_URL` overrides the host |
 | `KimovilSource` | kimovil.com autocomplete JSON + server-rendered specs page | `kimovil` extra | not a `ProductSource`: a spec reference. `lookup(title)` turns a marketplace title ("Смартфон Samsung Galaxy S24 Ultra 12/256GB") into the model's specs and Kimovil index (0–100). Cloudflare challenges headless Chromium; curl_cffi gets the page |
 
@@ -225,8 +225,15 @@ browser through an injected `page_factory`, and time through injected `sleep` /
 `rng`. Parser fixtures are minimal dicts built from the branches `parse.py`
 actually reads.
 
+A source takes any client of the right shape: `KaspiSource(client=...)`,
+`OlxSource(client=...)` and `OzonSource(browser=...)` are typed against the
+`KaspiClientLike`, `OlxClientLike` and `OzonBrowserLike` Protocols, and
+`PoliteClient(rng=...)` against `polite_http.Rng`. A stub doesn't have to
+subclass the real client to type-check.
+
 ```bash
 uv run pytest
+uv run ruff check . && uv run ruff format --check . && uv run ty check   # what CI runs too
 ```
 
 ## Contributing
