@@ -29,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 from collections.abc import Awaitable, Callable
 from pathlib import Path
@@ -68,6 +69,7 @@ SESSION_EXPIRED_STATUSES = frozenset({401, 403, 307})
 #: Sibling file (``<state_path>.ua.json``) holding the user agent the state was saved with.
 UA_SUFFIX = ".ua.json"
 STATE_FILE_MODE = 0o600  # cookies in here are credentials
+STATE_DIR_MODE = 0o700
 
 # "Target page, context or browser has been closed", crashes, disconnects.
 _DEAD_RE = re.compile(r"closed|crashed|disconnect", re.I)
@@ -327,9 +329,13 @@ class BrowserSession:
 
     async def _save_state(self, context: Any) -> None:
         assert self.state_path is not None
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        await context.storage_state(path=str(self.state_path))
-        self.state_path.chmod(STATE_FILE_MODE)
+        self.state_path.parent.mkdir(mode=STATE_DIR_MODE, parents=True, exist_ok=True)
+        state = await context.storage_state()
+        # Created 0600 from the first byte: Playwright's own write would use the umask (0644).
+        fd = os.open(self.state_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, STATE_FILE_MODE)
+        with os.fdopen(fd, "w") as f:
+            json.dump(state, f)
+        self.state_path.chmod(STATE_FILE_MODE)  # a file saved by an older version keeps its mode
         _ua_path(self.state_path).write_text(json.dumps({"user_agent": self.user_agent}))
 
     async def _goto(self, url: str) -> int:

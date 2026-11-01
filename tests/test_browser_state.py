@@ -6,6 +6,8 @@ Playwright is replaced by a recording fake API installed on ``_pw_api``.
 from __future__ import annotations
 
 import json
+import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -35,7 +37,7 @@ class FakeRequest:
 class FakeContext:
     def __init__(self, options: dict, probe_statuses: list[int]) -> None:
         self.options = options
-        self.saved_to: list[str] = []
+        self.saved_to: list[str | None] = []
         self.closed = False
         self._probe = FakeRequest(probe_statuses)
         self.page = FakePage(name="boot")
@@ -44,9 +46,10 @@ class FakeContext:
     async def new_page(self):
         return self.page
 
-    async def storage_state(self, path: str) -> dict:
+    async def storage_state(self, path: str | None = None) -> dict:
         self.saved_to.append(path)
-        Path(path).write_text(json.dumps({"cookies": [], "origins": []}))
+        if path is not None:  # Playwright writes with the process umask
+            Path(path).write_text(json.dumps({"cookies": [], "origins": []}))
         return {"cookies": [], "origins": []}
 
     async def close(self) -> None:
@@ -196,12 +199,24 @@ async def test_bootstrap_polls_until_ok_then_saves_state_and_user_agent(fake_api
     assert "--disable-blink-features=AutomationControlled" in browser.launch_kwargs["args"]
     [ctx] = browser.contexts
     assert "storage_state" not in ctx.options
-    assert ctx.saved_to == [str(state)]
+    assert ctx.saved_to == [None]  # we write the file, not Playwright
     assert json.loads(state.read_text()) == {"cookies": [], "origins": []}
     assert json.loads(Path(f"{state}{mod.UA_SUFFIX}").read_text()) == {"user_agent": SAVED_UA}
     assert sleeps == [2.0, 2.0]
     assert browser.closed is True
     assert fake_api.drivers_stopped == 1
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
+async def test_bootstrap_state_file_is_never_readable_by_others(fake_api, tmp_path):
+    state = tmp_path / "cfg" / "state.json"
+    old_umask = os.umask(0o022)
+    try:
+        assert await BrowserSession(state_path=state).bootstrap("https://x.test/probe") is True
+    finally:
+        os.umask(old_umask)
+    assert stat.S_IMODE(state.stat().st_mode) == 0o600
+    assert stat.S_IMODE(state.parent.stat().st_mode) == 0o700
 
 
 async def test_bootstrap_opens_the_session_channel(fake_api, tmp_path):
