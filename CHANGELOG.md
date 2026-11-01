@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-01
+
 ### Added
 
 - `KaspiClientLike`, `OlxClientLike`, `OzonBrowserLike` (in each `*.source` module) and `polite_http.Rng`: Protocols
@@ -24,6 +26,10 @@ All notable changes to this project are documented here. The format follows
   (Kaspi answers pages 0 and 1 without a login) and facet filters such as `":Dishwashers*Height:менее 75 см"`.
 - `KaspiSource.facets(query, city)` and `kaspi.parse.parse_facets`: the facets of the last search (title → row ids),
   so a caller can narrow the next search by "Высота", "Ширина" and the like.
+
+### Fixed
+
+- `examples/kaspi_demo.py` crashed on an offer without a seller name.
 
 ## [0.5.0] - 2026-10-22
 
