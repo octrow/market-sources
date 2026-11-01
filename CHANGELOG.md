@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-01
+
+### Changed
+
+- README (EN/RU) describes the 0.6.0 API: Kaspi `search(page=..., filters=...)` and `facets`, OLX
+  `search(region=True)`, `search_cheapest` and `category_of`, the client Protocols. No code changes: this release
+  only refreshes the PyPI description.
+
 ## [0.6.0] - 2026-11-01
 
 ### Added
