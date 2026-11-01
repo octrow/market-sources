@@ -1,2 +1,4 @@
 exempt:
   complexity_cyclomatic: "tests/test_browser_state.py test_bootstrap_polls_until_ok_then_saves_state_and_user_agent: a linear test; radon counts each of its asserts as a branch"
+  private_paths_in_history: "bd61753 and e1a5f0b hold only the local checkout path in old dev-install lines: no username or private name; rewriting public history would break forks"
+  language_mirrors: "openspec/ holds internal development specs, kept in English only; all user-facing docs have .ru.md mirrors"
