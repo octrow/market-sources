@@ -62,3 +62,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.vulture]
+min_confidence = 80
+# no_playwright: a pytest fixture, requested by argument name; target: MetaPathFinder.find_spec signature
+ignore_names = ["no_playwright", "target"]
