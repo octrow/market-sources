@@ -76,8 +76,9 @@ async def test_curl_error_becomes_httpx_transport_error(monkeypatch) -> None:
 
 def test_olx_client_uses_impersonation_when_available(monkeypatch) -> None:
     monkeypatch.setattr(impersonate, "available", lambda: True)
-    assert isinstance(OlxClient(proxy="http://p:1").http._transport, ImpersonateTransport)
-    assert OlxClient(proxy="http://p:1").http._transport._proxy == "http://p:1"
+    transport = OlxClient(proxy="http://p:1").http._transport
+    assert isinstance(transport, ImpersonateTransport)
+    assert transport._proxy == "http://p:1"
 
     monkeypatch.setattr(impersonate, "available", lambda: False)
     assert OlxClient().http._transport is None

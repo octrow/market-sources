@@ -222,11 +222,11 @@ def test_parse_offers_maps_a_merchant_offer():
 
 
 def test_an_offer_without_a_price_is_skipped():
-    assert parse_offers({"offers": [{}]}, 999) == []
+    assert parse_offers({"offers": [{}]}, "999") == []
 
 
 def test_a_missing_merchant_id_is_none():
-    [offer] = parse_offers({"offers": [{"price": 100}]}, 999)
+    [offer] = parse_offers({"offers": [{"price": 100}]}, "999")
     assert offer.merchant_id is None
     assert offer.product_id == "999"
 
@@ -411,7 +411,7 @@ class StubKaspiClient:
         self.city = city
         self.calls: list[tuple[str, object]] = []
 
-    async def search(self, query, page=0, sort="relevance", budget=None):
+    async def search(self, query, page=0, sort="relevance", budget=None, filters=""):
         self.calls.append(("search", query))
         self.budget = budget
         return {"data": {"cards": [card()]}}
@@ -473,6 +473,7 @@ async def test_a_city_client_is_cached_and_cleared_by_aclose():
 def test_source_passes_proxy_through_to_the_default_client(monkeypatch):
     monkeypatch.delenv("KASPI_PROXY", raising=False)
     source = KaspiSource(proxy="http://p.test:3128")
+    assert isinstance(source._client, KaspiClient)
     assert source._client.http.proxy == "http://p.test:3128"
 
 
@@ -538,6 +539,7 @@ def test_parse_review_stats_skips_malformed_entries_instead_of_raising():
         "groupSummary": [{"id": "ALL", "total": "many"}, {"id": "NEGATIVE", "total": 2}, "junk"],
     }
     stats = parse_review_stats(payload, "1")
+    assert stats is not None
     assert stats.rating_counts == {3: 1}
     assert (stats.average_rating, stats.total, stats.negative_count) == (None, None, 2)
 
@@ -635,16 +637,17 @@ def test_garbage_delivery_date_is_none_but_a_valid_cost_is_kept():
 # ------------------------------------------------------------- source reviews_with_stats
 
 
-async def test_reviews_with_stats_makes_one_call_and_parses_both():
+async def test_reviews_with_stats_makes_one_call_and_parses_both(monkeypatch):
     stub = StubKaspiClient()
 
     async def reviews(product_id):
         stub.calls.append(("reviews", product_id))
         return stats_payload(data=[{"rating": 5}])
 
-    stub.reviews = reviews
+    monkeypatch.setattr(stub, "reviews", reviews)
     reviews_list, stats = await KaspiSource(client=stub).reviews_with_stats("123456")
     assert [r.rating for r in reviews_list] == [5.0]
+    assert stats is not None
     assert stats.total == 100
     assert [c for c in stub.calls if c[0] == "reviews"] == [("reviews", "123456")]
 
@@ -657,13 +660,13 @@ async def test_reviews_still_returns_only_the_list():
 # ------------------------------------------------------------- variant ids (configSku)
 
 
-async def test_variant_calls_use_the_config_sku_remembered_from_search():
+async def test_variant_calls_use_the_config_sku_remembered_from_search(monkeypatch):
     stub = StubKaspiClient()
 
     async def search(query, page=0, sort="relevance", budget=None):
         return {"data": {"cards": [FASHION_CARD]}}
 
-    stub.search = search
+    monkeypatch.setattr(stub, "search", search)
     source = KaspiSource(client=stub)
     await source.search("кроссовки")
     offers = await source.offers("16535441")
@@ -733,6 +736,7 @@ async def test_filters_join_the_price_in_q():
     await client.search("x", budget=30_000, filters=":Dishwashers*Width:40 см")
     first, second = (dict(r.url.params).get("q") for r in transport.requests)
     assert first == ":Dishwashers*Height:менее 75 см"
+    assert second is not None
     assert second.startswith(":price:") and second.endswith(":Dishwashers*Width:40 см")
 
 
@@ -765,11 +769,13 @@ async def test_the_source_remembers_facets_and_passes_page_and_filters():
 
 
 async def test_an_injected_client_without_budget_still_searches():
+    # The point: a client older than KaspiClientLike, so the types don't match on purpose.
     class OldClient(StubKaspiClient):
-        async def search(self, query, page=0, sort="relevance"):
+        async def search(self, query, page=0, sort="relevance"):  # ty: ignore[invalid-method-override]
             return {"data": {"cards": [card()]}}
 
-    assert len(await KaspiSource(client=OldClient()).search("x")) == 1
+    old = OldClient()
+    assert len(await KaspiSource(client=old).search("x")) == 1  # ty: ignore[invalid-argument-type]
 
 
 def test_an_unknown_city_name_is_an_error_not_an_id():
@@ -792,13 +798,14 @@ def test_a_city_name_resolves_to_its_kaspi_id():
 
 
 async def test_offers_come_from_the_city_the_product_was_found_in():
-    source = KaspiSource(client=StubKaspiClient())
+    almaty = StubKaspiClient()
+    source = KaspiSource(client=almaty)
     shymkent = source._city_clients["511010000"] = StubKaspiClient(city="511010000")
     await source.search("x", city="Шымкент")
     await source.offers("123456")
     await source.offers("999")  # never searched: the default city
     assert ("offers", "123456") in shymkent.calls
-    assert ("offers", "999") in source._client.calls
+    assert ("offers", "999") in almaty.calls
 
 
 async def test_an_explicit_city_wins_for_offers():

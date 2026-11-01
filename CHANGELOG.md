@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `KaspiClientLike`, `OlxClientLike`, `OzonBrowserLike` (in each `*.source` module) and `polite_http.Rng`: Protocols
+  for what a source calls on its injected client and what `PoliteClient` needs of its `rng`. `KaspiSource(client=...)`,
+  `OlxSource(client=...)`, `OzonSource(browser=...)` and `PoliteClient(rng=...)` take any object of that shape, so a
+  stand-in type-checks without subclassing the real client.
+
 - `OlxSource.search_cheapest(query, ..., category_id=..., limit=...)`: listings cheapest first, page by page,
   free ones skipped; `OlxClient.search(sort_by=..., category_id=...)`; `OlxSource.category_of(product_id)`. A broad
   query around a city has hundreds of ads: the relevance order shows only ~50, the bargains are further down.

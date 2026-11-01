@@ -33,7 +33,7 @@ import logging
 import random
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 
@@ -79,6 +79,12 @@ def parse_retry_after(value: str | None, *, now: datetime | None = None) -> floa
     return max(0.0, (when - (now or datetime.now(UTC))).total_seconds())
 
 
+class Rng(Protocol):
+    """What ``PoliteClient`` needs of ``random.Random``: a jitter in ``[a, b]``."""
+
+    def uniform(self, a: float, b: float) -> float: ...
+
+
 class PoliteClient:
     """A gentle, retrying async HTTP client shared by every source adapter.
 
@@ -107,7 +113,7 @@ class PoliteClient:
         idempotent_methods: frozenset[str] | set[str] = IDEMPOTENT_METHODS,
         transport: httpx.AsyncBaseTransport | None = None,
         sleep: SleepFn = asyncio.sleep,
-        rng: random.Random | None = None,
+        rng: Rng | None = None,
     ) -> None:
         if min_delay_s > max_delay_s:
             raise ValueError("min_delay_s must not exceed max_delay_s")
@@ -282,5 +288,6 @@ __all__ = [
     "IDEMPOTENT_METHODS",
     "RETRY_STATUSES",
     "PoliteClient",
+    "Rng",
     "parse_retry_after",
 ]

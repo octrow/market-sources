@@ -1,5 +1,6 @@
 """``ProductSource`` implementation for Ozon.kz."""
 
+from typing import Protocol
 from urllib.parse import quote
 
 from market_sources.base import RawOffer, RawProduct, RawReview
@@ -27,6 +28,14 @@ def search_path(query: str, budget: int | None = None) -> str:
     return path
 
 
+class OzonBrowserLike(Protocol):
+    """What ``OzonSource`` calls on its browser: ``OzonBrowser``, or a stand-in."""
+
+    async def fetch_json(self, path: str) -> dict: ...
+
+    async def aclose(self) -> None: ...
+
+
 class OzonSource:
     """Marketplace adapter for Ozon.kz, wiring ``OzonBrowser`` + ``parse``.
 
@@ -36,8 +45,10 @@ class OzonSource:
 
     name = "ozon"
 
-    def __init__(self, browser: OzonBrowser | None = None, *, base_url: str | None = None) -> None:
-        self._browser = browser or OzonBrowser(base_url=base_url)
+    def __init__(
+        self, browser: OzonBrowserLike | None = None, *, base_url: str | None = None
+    ) -> None:
+        self._browser: OzonBrowserLike = browser or OzonBrowser(base_url=base_url)
 
     async def search(
         self, query: str, city: str | None = None, budget: int | None = None
@@ -67,4 +78,4 @@ class OzonSource:
         await self._browser.aclose()
 
 
-__all__ = ["OzonSource", "product_path", "search_path"]
+__all__ = ["OzonBrowserLike", "OzonSource", "product_path", "search_path"]

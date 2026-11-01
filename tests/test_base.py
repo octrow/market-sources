@@ -25,7 +25,7 @@ def test_raw_offer_requires_a_price_and_defaults_to_in_stock():
     assert offer.in_stock is True
     assert offer.currency == "KZT"
     with pytest.raises(Exception):  # noqa: B017 — pydantic ValidationError
-        RawOffer(source="olx", product_id="1")
+        RawOffer(source="olx", product_id="1")  # ty: ignore[missing-argument]
 
 
 def test_raw_review_text_defaults_to_empty():

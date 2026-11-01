@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Protocol
 
 from market_sources.base import RawOffer, RawProduct, RawReview
 from market_sources.cities import olx_city_id, olx_region_id, resolve_city
@@ -20,6 +20,27 @@ OLX_RESULT_CAP = 1000
 MIN_PRICE_SLICE_KZT = 1000
 
 
+class OlxClientLike(Protocol):
+    """What ``OlxSource`` calls on its client: ``OlxClient``, or a stand-in."""
+
+    city_id: str
+
+    async def search(
+        self,
+        query: str,
+        *,
+        offset: int = 0,
+        budget: int | None = None,
+        min_price: int | None = None,
+        sort_by: str | None = None,
+        category_id: str | None = None,
+    ) -> Any: ...
+
+    async def detail(self, offer_id: str) -> Any: ...
+
+    async def aclose(self) -> None: ...
+
+
 class OlxSource:
     """Marketplace adapter for OLX.kz, wiring ``OlxClient`` + ``parse``.
 
@@ -35,10 +56,10 @@ class OlxSource:
 
     name = "olx"
 
-    def __init__(self, client: OlxClient | None = None, *, proxy: str | None = None) -> None:
-        self._client = client or OlxClient(proxy=proxy)
+    def __init__(self, client: OlxClientLike | None = None, *, proxy: str | None = None) -> None:
+        self._client: OlxClientLike = client or OlxClient(proxy=proxy)
         self._offer_cache: dict[str, dict[str, Any]] = {}
-        self._city_clients: dict[str, OlxClient] = {}
+        self._city_clients: dict[str, OlxClientLike] = {}
 
     def _cache_offers(self, payload: dict) -> None:
         for offer in payload.get("data") or []:
@@ -155,7 +176,7 @@ class OlxSource:
         return list(products.values())
 
     async def _price_slices(
-        self, client: OlxClient, query: str, lo: int, hi: int
+        self, client: OlxClientLike, query: str, lo: int, hi: int
     ) -> list[tuple[int, int, dict]]:
         """Split [lo, hi] until each slice is under the cap; returns (lo, hi, first page)."""
         first = await client.search(query, budget=hi, min_price=lo)
@@ -200,7 +221,7 @@ class OlxSource:
             self._offer_cache[product_id] = offer
         return offer
 
-    def _client_for_region(self, city: str | None) -> OlxClient:
+    def _client_for_region(self, city: str | None) -> OlxClientLike:
         """A client for the region of ``city`` (default: the default client's city)."""
         region = olx_region_id(resolve_city(city, olx_city_id) or self._client.city_id)
         if region is None:
@@ -211,7 +232,7 @@ class OlxSource:
             self._city_clients[key] = OlxClient(region_id=region, proxy=proxy)
         return self._city_clients[key]
 
-    def _client_for_city(self, city: str | None) -> OlxClient:
+    def _client_for_city(self, city: str | None) -> OlxClientLike:
         """A client for ``city`` (an OLX city_id or a city name), cached per city."""
         city = resolve_city(city, olx_city_id)
         if city is None or city == self._client.city_id:
@@ -227,4 +248,4 @@ def _visible_total(payload: dict) -> int:
     return min(total, OLX_RESULT_CAP)
 
 
-__all__ = ["DEFAULT_CITY_ID", "OLX_RESULT_CAP", "TARGET_RESULTS", "OlxSource"]
+__all__ = ["DEFAULT_CITY_ID", "OLX_RESULT_CAP", "TARGET_RESULTS", "OlxClientLike", "OlxSource"]

@@ -83,7 +83,7 @@ async def test_nav_timeout_is_passed_through():
     class Recorder(FakePage):
         def __init__(self):
             super().__init__()
-            self.timeouts: list[int] = []
+            self.timeouts: list[int | None] = []
 
         async def goto(self, url, wait_until=None, timeout=None):
             self.timeouts.append(timeout)

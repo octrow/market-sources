@@ -75,25 +75,30 @@ def test_model_query_keeps_brand_and_model_and_drops_memory_and_russian(title, e
 # ------------------------------------------------------------------ best_match
 
 
+def matched_slug(query: str, hits: list) -> str | None:
+    match = best_match(query, hits)
+    return match.slug if match else None
+
+
 def test_the_exact_model_wins_over_a_longer_sibling():
     hits = parse_autocomplete(
         {"results": [hit("Apple iPhone 13 Pro Max", "a"), hit("Apple iPhone 13", "b")]}
     )
-    assert best_match("apple iphone 13", hits).slug == "b"
+    assert matched_slug("apple iphone 13", hits) == "b"
 
 
 def test_the_most_specific_contained_model_wins():
     hits = parse_autocomplete(
         {"results": [hit("Apple iPhone 13", "a"), hit("Apple iPhone 13 Pro", "b")]}
     )
-    assert best_match("apple iphone 13 pro", hits).slug == "b"
+    assert matched_slug("apple iphone 13 pro", hits) == "b"
 
 
 def test_a_network_suffix_is_optional_and_extra_query_words_are_tolerated():
     hits = parse_autocomplete(
         {"results": [hit("POCO X6 Neo", "neo"), hit("POCO X6 Pro 5G", "pro")]}
     )
-    assert best_match("xiaomi poco x6 pro phantom", hits).slug == "pro"
+    assert matched_slug("xiaomi poco x6 pro phantom", hits) == "pro"
 
 
 def test_no_match_when_every_hit_names_something_the_query_does_not():
@@ -228,11 +233,11 @@ async def test_lookup_trims_trailing_words_kimovil_cannot_find():
 
 def test_the_parent_brand_may_be_missing_from_the_title():
     hits = parse_autocomplete({"results": [hit("Xiaomi Redmi Note 12 Pro 5G", "rn12p")]})
-    assert best_match("redmi note 12 pro 5g", hits).slug == "rn12p"
+    assert matched_slug("redmi note 12 pro 5g", hits) == "rn12p"
 
 
 def test_a_name_with_its_brand_present_outranks_one_missing_it():
     hits = parse_autocomplete(
         {"results": [hit("Xiaomi Redmi Note 12 Pro", "a"), hit("Redmi Note 12 Pro", "b")]}
     )
-    assert best_match("redmi note 12 pro", hits).slug == "b"
+    assert matched_slug("redmi note 12 pro", hits) == "b"

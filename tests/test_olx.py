@@ -239,7 +239,9 @@ class StubOlxClient:
         self.searches: list[dict] = []
         self.details: list[str] = []
 
-    async def search(self, query, offset=0, limit=50, budget=None, min_price=None):
+    async def search(
+        self, query, offset=0, limit=50, budget=None, min_price=None, sort_by=None, category_id=None
+    ):
         self.searches.append({"query": query, "offset": offset, "budget": budget})
         index = min(len(self.searches) - 1, len(self.pages) - 1)
         return self.pages[index]
@@ -330,7 +332,8 @@ def test_a_region_search_uses_the_citys_oblast_client():
     source = OlxSource(client=StubOlxClient())
     almaty = source._client_for_region(None)
     assert isinstance(almaty, OlxClient) and almaty.region_id == "8"
-    assert source._client_for_region("Шымкент").region_id == "6"
+    shymkent = source._client_for_region("Шымкент")
+    assert isinstance(shymkent, OlxClient) and shymkent.region_id == "6"
     assert source._client_for_region("Шымкент") is source._client_for_region("47")
 
 
@@ -360,7 +363,9 @@ class CatalogueOlxClient:
         self.catalogue = [listing(id=i, params=price_param(p)) for i, p in enumerate(prices, 1)]
         self.searches: list[tuple[int | None, int | None, int]] = []
 
-    async def search(self, query, offset=0, limit=50, budget=None, min_price=None):
+    async def search(
+        self, query, offset=0, limit=50, budget=None, min_price=None, sort_by=None, category_id=None
+    ):
         self.searches.append((min_price, budget, offset))
         lo, hi = min_price or 0, budget if budget is not None else float("inf")
         hits = [o for o in self.catalogue if lo <= o["params"][0]["value"]["value"] <= hi]
@@ -369,6 +374,9 @@ class CatalogueOlxClient:
             "data": visible[offset : offset + limit],
             "metadata": {"total_elements": len(visible)},
         }
+
+    async def detail(self, offer_id):
+        raise AssertionError("search_all never fetches a detail")
 
     async def aclose(self):
         pass

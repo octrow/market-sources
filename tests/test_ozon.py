@@ -146,6 +146,7 @@ def test_parse_offer_uses_the_card_price_and_the_current_seller():
         },
     )
     offer = parse_offer(page, "1234567890")
+    assert offer is not None
     assert (offer.source, offer.product_id, offer.seller) == ("ozon", "1234567890", "MobileWorld")
     assert offer.price == 84990.0
     assert offer.in_stock is True
@@ -155,10 +156,17 @@ def test_parse_offer_uses_the_card_price_and_the_current_seller():
 def test_the_plain_price_is_the_fallback_and_unavailability_is_honored():
     page = page_with(webPrice={"price": "89 990 ₸", "isAvailable": False})
     offer = parse_offer(page, "1")
+    assert offer is not None
     assert offer.price == 89990.0
     assert offer.in_stock is False
     assert offer.seller is None
     assert offer.merchant_rating is None
+
+
+def seller(page: dict) -> str | None:
+    offer = parse_offer(page, "1")
+    assert offer is not None
+    return offer.seller
 
 
 def test_a_seller_widget_title_stands_in_for_a_missing_cell_title():
@@ -166,12 +174,12 @@ def test_a_seller_widget_title_stands_in_for_a_missing_cell_title():
         webPrice={"price": "100 ₸"},
         webCurrentSeller={"title": {"text": "Ozon Продавец"}},
     )
-    assert parse_offer(page, "1").seller == "Ozon Продавец"
+    assert seller(page) == "Ozon Продавец"
 
 
 def test_a_nameless_seller_widget_is_ignored():
     page = page_with(webPrice={"price": "100 ₸"}, webCurrentSeller={"rating": {"title": {}}})
-    assert parse_offer(page, "1").seller is None
+    assert seller(page) is None
 
 
 def test_no_price_widget_or_no_price_means_no_offer():

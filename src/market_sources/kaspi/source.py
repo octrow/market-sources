@@ -1,6 +1,6 @@
 """``ProductSource`` implementation for Kaspi.kz."""
 
-from typing import Any
+from typing import Any, Protocol
 
 from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
 from market_sources.cities import kaspi_city_id, resolve_city
@@ -19,6 +19,28 @@ from market_sources.kaspi.parse import (
 NEGATIVE_LIMIT = 30
 
 
+class KaspiClientLike(Protocol):
+    """What ``KaspiSource`` calls on its client: ``KaspiClient``, or a stand-in.
+
+    ``search`` gets ``page``, ``budget`` and ``filters`` only when they are set, so
+    an older client without them still works for a plain search.
+    """
+
+    city: str
+
+    async def search(
+        self, query: str, *, page: int = 0, budget: int | None = None, filters: str = ""
+    ) -> Any: ...
+
+    async def offers(self, product_id: str) -> Any: ...
+
+    async def reviews(self, product_id: str, *, limit: int = 9, filter: str = "COMMENT") -> Any: ...  # noqa: A002
+
+    async def specs(self, product_id: str) -> Any: ...
+
+    async def aclose(self) -> None: ...
+
+
 class KaspiSource:
     """Marketplace adapter for Kaspi.kz, wiring ``KaspiClient`` + ``parse``.
 
@@ -33,9 +55,9 @@ class KaspiSource:
 
     name = "kaspi"
 
-    def __init__(self, client: KaspiClient | None = None, *, proxy: str | None = None) -> None:
-        self._client = client or KaspiClient(proxy=proxy)
-        self._city_clients: dict[str, KaspiClient] = {}
+    def __init__(self, client: KaspiClientLike | None = None, *, proxy: str | None = None) -> None:
+        self._client: KaspiClientLike = client or KaspiClient(proxy=proxy)
+        self._city_clients: dict[str, KaspiClientLike] = {}
         self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
         self._product_cities: dict[str, str] = {}  # product_id -> cityId, from search
         self._facets: dict[tuple[str, str], dict[str, list[tuple[str, str]]]] = {}
@@ -126,7 +148,7 @@ class KaspiSource:
             await extra.aclose()
         self._city_clients.clear()
 
-    def _client_for_city(self, city: str | None) -> KaspiClient:
+    def _client_for_city(self, city: str | None) -> KaspiClientLike:
         """A client bound to ``city``, reusing the default one when it matches.
 
         Extra clients are cached per city (their pacing budget stays separate —
@@ -141,4 +163,4 @@ class KaspiSource:
         return self._city_clients[city]
 
 
-__all__ = ["DEFAULT_CITY", "NEGATIVE_LIMIT", "KaspiSource"]
+__all__ = ["DEFAULT_CITY", "NEGATIVE_LIMIT", "KaspiClientLike", "KaspiSource"]

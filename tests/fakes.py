@@ -57,7 +57,7 @@ class ScriptedTransport(httpx.AsyncBaseTransport):
         self.max_inflight = max(self.max_inflight, self.inflight)
         try:
             await asyncio.sleep(0)  # a real yield, so overlap is observable
-            entry = self.script.pop(0) if len(self.script) > 1 else self.script[0]
+            entry: Any = self.script.pop(0) if len(self.script) > 1 else self.script[0]
             if isinstance(entry, Exception):
                 raise entry
             if callable(entry):
@@ -93,6 +93,7 @@ class FakePage:
         self.closed = False
         self.trace = trace if trace is not None else []
         self.name = name
+        self.request: Any = None  # playwright's APIRequestContext; a test sets its own
 
     async def goto(self, url: str, wait_until: str | None = None, timeout: int | None = None):
         self.gotos.append(url)
