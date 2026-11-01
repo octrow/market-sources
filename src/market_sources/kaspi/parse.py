@@ -260,29 +260,35 @@ def parse_review_stats(payload: dict, product_id: str) -> RawReviewStats | None:
     if not isinstance(summary, dict) and not isinstance(groups, list):
         return None
     summary = summary if isinstance(summary, dict) else {}
-    groups = groups if isinstance(groups, list) else []
-    statistic = summary.get("statistic") if isinstance(summary.get("statistic"), list) else []
+    return RawReviewStats(
+        source=SOURCE,
+        product_id=str(product_id),
+        rating_counts=_rating_counts(summary),
+        average_rating=_average(summary.get("global")),
+        **_group_totals(groups if isinstance(groups, list) else []),
+    )
 
+
+def _rating_counts(summary: dict) -> dict[int, int]:
+    """``summary.statistic`` -> {stars 1..5: review count}; malformed entries are skipped."""
+    statistic = summary.get("statistic")
     rating_counts: dict[int, int] = {}
-    for entry in statistic:
+    for entry in statistic if isinstance(statistic, list) else []:
         if not isinstance(entry, dict):
             continue
         rate, count = _whole(entry.get("rate")), _whole(entry.get("count"))
         if rate is not None and count is not None and 1 <= rate <= 5:
             rating_counts[rate] = count
+    return rating_counts
 
-    group_totals = {
+
+def _group_totals(groups: list) -> dict[str, int | None]:
+    """``groupSummary`` -> the ``RawReviewStats`` count fields it names."""
+    return {
         _GROUP_FIELDS[group["id"]]: _whole(group.get("total"))
         for group in groups
         if isinstance(group, dict) and group.get("id") in _GROUP_FIELDS
     }
-    return RawReviewStats(
-        source=SOURCE,
-        product_id=str(product_id),
-        rating_counts=rating_counts,
-        average_rating=_average(summary.get("global")),
-        **group_totals,
-    )
 
 
 def _feature_value(feature: dict) -> str | None:
