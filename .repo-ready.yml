@@ -1,0 +1,2 @@
+exempt:
+  complexity_cyclomatic: "tests/test_browser_state.py test_bootstrap_polls_until_ok_then_saves_state_and_user_agent: a linear test; radon counts each of its asserts as a branch"
