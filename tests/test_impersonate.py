@@ -11,9 +11,7 @@ from market_sources.olx.client import OlxClient
 
 
 class _Resp:
-    def __init__(
-        self, status: int, headers: list[tuple[str, str]], content: bytes
-    ) -> None:
+    def __init__(self, status: int, headers: list[tuple[str, str]], content: bytes) -> None:
         self.status_code = status
         self.content = content
         self._headers = headers
@@ -53,21 +51,15 @@ async def test_maps_response_and_drops_encoding_headers() -> None:
             b'{"a"',
         )
     )
-    async with httpx.AsyncClient(
-        transport=ImpersonateTransport(session=session)
-    ) as client:
-        resp = await client.get(
-            "https://olx.test/api?q=1", headers={"user-agent": "UA"}
-        )
+    async with httpx.AsyncClient(transport=ImpersonateTransport(session=session)) as client:
+        resp = await client.get("https://olx.test/api?q=1", headers={"user-agent": "UA"})
 
     assert resp.status_code == 200 and resp.content == b'{"a"'
     assert "content-encoding" not in resp.headers and resp.headers["x-a"] == "1"
     call = session.calls[0]
     assert (call["method"], call["url"]) == ("GET", "https://olx.test/api?q=1")
     assert call["headers"]["user-agent"] == "UA"
-    assert (
-        "accept-encoding" not in call["headers"]
-    )  # curl_cffi negotiates + decodes itself
+    assert "accept-encoding" not in call["headers"]  # curl_cffi negotiates + decodes itself
     assert call["allow_redirects"] is False  # httpx owns redirects
 
 
@@ -77,18 +69,14 @@ async def test_curl_error_becomes_httpx_transport_error(monkeypatch) -> None:
 
     monkeypatch.setattr(impersonate, "_curl_errors", lambda: (_CurlBoom,))
     session = _FakeSession(error=_CurlBoom("reset"))
-    async with httpx.AsyncClient(
-        transport=ImpersonateTransport(session=session)
-    ) as client:
+    async with httpx.AsyncClient(transport=ImpersonateTransport(session=session)) as client:
         with pytest.raises(httpx.TransportError):
             await client.get("https://olx.test/")
 
 
 def test_olx_client_uses_impersonation_when_available(monkeypatch) -> None:
     monkeypatch.setattr(impersonate, "available", lambda: True)
-    assert isinstance(
-        OlxClient(proxy="http://p:1").http._transport, ImpersonateTransport
-    )
+    assert isinstance(OlxClient(proxy="http://p:1").http._transport, ImpersonateTransport)
     assert OlxClient(proxy="http://p:1").http._transport._proxy == "http://p:1"
 
     monkeypatch.setattr(impersonate, "available", lambda: False)

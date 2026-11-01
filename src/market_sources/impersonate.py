@@ -22,12 +22,8 @@ DEFAULT_IMPERSONATE = "chrome"
 
 # curl_cffi negotiates and decodes compression itself; forwarding these would
 # make libcurl return raw bytes or make httpx decode twice.
-_DROP_REQUEST_HEADERS = frozenset(
-    {"accept-encoding", "host", "connection", "content-length"}
-)
-_DROP_RESPONSE_HEADERS = frozenset(
-    {"content-encoding", "content-length", "transfer-encoding"}
-)
+_DROP_REQUEST_HEADERS = frozenset({"accept-encoding", "host", "connection", "content-length"})
+_DROP_RESPONSE_HEADERS = frozenset({"content-encoding", "content-length", "transfer-encoding"})
 
 
 def available() -> bool:
@@ -59,15 +55,11 @@ class ImpersonateTransport(httpx.AsyncBaseTransport):
         if self._session is None:
             from curl_cffi.requests import AsyncSession
 
-            self._session = AsyncSession(
-                impersonate=self._impersonate, proxy=self._proxy
-            )
+            self._session = AsyncSession(impersonate=self._impersonate, proxy=self._proxy)
         return self._session
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        headers = {
-            k: v for k, v in request.headers.items() if k not in _DROP_REQUEST_HEADERS
-        }
+        headers = {k: v for k, v in request.headers.items() if k not in _DROP_REQUEST_HEADERS}
         body = await request.aread()
         try:
             resp = await self._ensure_session().request(
@@ -91,13 +83,9 @@ class ImpersonateTransport(httpx.AsyncBaseTransport):
 def _to_httpx(resp: Any, request: httpx.Request) -> httpx.Response:
     """Rebuild a curl_cffi response as httpx's, minus already-decoded encodings."""
     headers = [
-        (k, v)
-        for k, v in resp.headers.multi_items()
-        if k.lower() not in _DROP_RESPONSE_HEADERS
+        (k, v) for k, v in resp.headers.multi_items() if k.lower() not in _DROP_RESPONSE_HEADERS
     ]
-    return httpx.Response(
-        resp.status_code, headers=headers, content=resp.content, request=request
-    )
+    return httpx.Response(resp.status_code, headers=headers, content=resp.content, request=request)
 
 
 __all__ = ["DEFAULT_IMPERSONATE", "ImpersonateTransport", "available"]

@@ -226,9 +226,7 @@ class PoliteClient:
             for attempt in range(attempts):
                 last = attempt + 1 >= attempts
                 try:
-                    response = await client.request(
-                        method, url, headers=request_headers, **kwargs
-                    )
+                    response = await client.request(method, url, headers=request_headers, **kwargs)
                 except httpx.TransportError as exc:
                     if last:
                         raise

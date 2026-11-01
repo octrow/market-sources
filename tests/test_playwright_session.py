@@ -52,7 +52,11 @@ def test_playwright_is_really_blocked(no_playwright):
 
 def test_modules_import_without_playwright(no_playwright):
     """The load-bearing invariant: the `browser` extra is needed to *run*, not to import."""
-    for name in ("market_sources", "market_sources.playwright_session", "market_sources.ozon.source"):
+    for name in (
+        "market_sources",
+        "market_sources.playwright_session",
+        "market_sources.ozon.source",
+    ):
         assert importlib.import_module(name) is not None
 
 

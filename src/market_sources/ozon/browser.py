@@ -82,9 +82,7 @@ class OzonBrowser(BrowserSession):
         its assets through them, and blocking makes Ozon answer 403 (which is why
         ``BrowserSession`` has no blocking to begin with).
         """
-        await page.goto(
-            f"{self.base}/", wait_until="domcontentloaded", timeout=self.nav_timeout_ms
-        )
+        await page.goto(f"{self.base}/", wait_until="domcontentloaded", timeout=self.nav_timeout_ms)
         await page.wait_for_timeout(CHALLENGE_WAIT_MS)
         title = await page.title()
         if _ANTIBOT_RE.search(title or ""):

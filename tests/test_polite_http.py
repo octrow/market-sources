@@ -25,9 +25,7 @@ def make_client(script=None, **kwargs) -> tuple[PoliteClient, ScriptedTransport,
     sleep = RecordingSleep()
     kwargs.setdefault("min_delay_s", 0.5)
     kwargs.setdefault("max_delay_s", 1.5)
-    client = PoliteClient(
-        transport=transport, sleep=sleep, rng=LowRng(), **kwargs
-    )
+    client = PoliteClient(transport=transport, sleep=sleep, rng=LowRng(), **kwargs)
     return client, transport, sleep
 
 
@@ -56,7 +54,9 @@ async def test_constructor_headers_and_user_agent_override_defaults():
 
 async def test_per_request_headers_and_referer_win():
     client, transport, _ = make_client(headers={"x-ks-city": "750000000"})
-    await client.get(URL, referer="https://kaspi.kz/shop/search/", headers={"x-ks-city": "710000000"})
+    await client.get(
+        URL, referer="https://kaspi.kz/shop/search/", headers={"x-ks-city": "710000000"}
+    )
     sent = transport.requests[0].headers
     assert sent["referer"] == "https://kaspi.kz/shop/search/"
     assert sent["x-ks-city"] == "710000000"
@@ -206,7 +206,9 @@ async def test_retry_after_http_date_is_honored():
     when = datetime.now(UTC) + timedelta(seconds=5)
     client, _, sleep = make_client(
         [
-            httpx.Response(503, headers={"retry-after": when.strftime("%a, %d %b %Y %H:%M:%S GMT")}),
+            httpx.Response(
+                503, headers={"retry-after": when.strftime("%a, %d %b %Y %H:%M:%S GMT")}
+            ),
             httpx.Response(200, json={}),
         ],
         min_delay_s=0,

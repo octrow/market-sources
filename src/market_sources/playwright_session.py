@@ -175,8 +175,9 @@ class BrowserSession:
         """
         return await self.page_op(url, _body_text, retries=retries)
 
-    async def page_op(self, url: str, op: Callable[[Any], Awaitable[Any]], *,
-                      retries: int = 1) -> Any:
+    async def page_op(
+        self, url: str, op: Callable[[Any], Awaitable[Any]], *, retries: int = 1
+    ) -> Any:
         """Navigate to ``url`` and run ``op(page)`` on the live page — locked, retried.
 
         The primitive for locator-based consumers (kimovil-style extraction)
@@ -335,9 +336,7 @@ class BrowserSession:
         """``page.goto`` and return the HTTP status (``-1`` when no response object)."""
         page = self._page
         assert page is not None
-        resp = await page.goto(
-            url, wait_until="domcontentloaded", timeout=self.nav_timeout_ms
-        )
+        resp = await page.goto(url, wait_until="domcontentloaded", timeout=self.nav_timeout_ms)
         return resp.status if resp else -1
 
     def _on_disconnect(self, _browser: Any) -> None:

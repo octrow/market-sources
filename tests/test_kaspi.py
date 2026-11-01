@@ -116,7 +116,10 @@ def test_all_image_urls_preserved():
                     card(
                         previewImages=[
                             {"medium": "https://img.test/1m.jpg"},
-                            {"medium": "https://img.test/2m.jpg", "large": "https://img.test/2l.jpg"},
+                            {
+                                "medium": "https://img.test/2m.jpg",
+                                "large": "https://img.test/2l.jpg",
+                            },
                             {"large": "https://img.test/3l.jpg"},
                         ]
                     )
@@ -278,7 +281,10 @@ def test_parse_specs_flattens_visible_features_across_groups():
                     {"featureValues": [{"value": "безымянная"}]},
                 ],
             },
-            {"name": "Экран", "features": [{"name": "Диагональ", "featureValues": [{"value": 6.1}]}]},
+            {
+                "name": "Экран",
+                "features": [{"name": "Диагональ", "featureValues": [{"value": 6.1}]}],
+            },
         ]
     }
     assert parse_specs(payload) == {
@@ -421,7 +427,9 @@ class StubKaspiClient:
 
     async def specs(self, product_id):
         self.calls.append(("specs", product_id))
-        return {"specifications": [{"features": [{"name": "Бренд", "featureValues": [{"value": "A"}]}]}]}
+        return {
+            "specifications": [{"features": [{"name": "Бренд", "featureValues": [{"value": "A"}]}]}]
+        }
 
     async def aclose(self):
         self.calls.append(("aclose", None))
@@ -459,7 +467,7 @@ async def test_a_city_client_is_cached_and_cleared_by_aclose():
     first = source._client_for_city("710000000")
     assert source._client_for_city("710000000") is first  # cached, not respawned
     await source.aclose()  # closes default + every city pool without raising
-    assert source._city_clients == {}      # cache cleared, no leaked pools left
+    assert source._city_clients == {}  # cache cleared, no leaked pools left
 
 
 def test_source_passes_proxy_through_to_the_default_client(monkeypatch):
@@ -554,11 +562,7 @@ def test_a_naive_datetime_is_utc_so_late_evening_utc_is_next_day_in_almaty():
 
 def test_a_utc_morning_stays_on_the_same_almaty_day():
     [offer] = parse_offers(
-        {
-            "offers": [
-                offer_with_options("EXPRESS", EXPRESS={"delivery": "2026-10-13T10:00:00"})
-            ]
-        },
+        {"offers": [offer_with_options("EXPRESS", EXPRESS={"delivery": "2026-10-13T10:00:00"})]},
         "1",
     )
     assert offer.delivery_date == "2026-10-13"
@@ -602,9 +606,7 @@ def test_without_a_matching_type_express_wins_then_to_door_then_the_first_option
     first_only = offer_with_options(
         None, PICKUP={"delivery": "2026-10-15T10:00:00", "deliveryCost": 0}
     )
-    picked = parse_offers(
-        {"offers": [express_first, to_door_only, first_only]}, "1"
-    )
+    picked = parse_offers({"offers": [express_first, to_door_only, first_only]}, "1")
     assert [o.delivery_cost for o in picked] == [1500.0, 500.0, 0.0]
     assert [o.delivery_date for o in picked] == ["2026-10-13", "2026-10-20", "2026-10-15"]
 
@@ -622,9 +624,7 @@ def test_garbage_delivery_date_is_none_but_a_valid_cost_is_kept():
     [offer] = parse_offers(
         {
             "offers": [
-                offer_with_options(
-                    "EXPRESS", EXPRESS={"delivery": "soon", "deliveryCost": "1500"}
-                )
+                offer_with_options("EXPRESS", EXPRESS={"delivery": "soon", "deliveryCost": "1500"})
             ]
         },
         "1",

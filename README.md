@@ -29,6 +29,7 @@ Under the adapters sit two reusable layers: `PoliteClient`, a paced, retrying as
 import asyncio
 from market_sources import KaspiSource
 
+
 async def main():
     kaspi = KaspiSource()
     products = await kaspi.search("iphone 15")
@@ -36,6 +37,7 @@ async def main():
     cheapest = min(offers, key=lambda o: o.price)
     print(products[0].title, "|", len(offers), "offers, from", cheapest.price, cheapest.currency)
     await kaspi.aclose()
+
 
 asyncio.run(main())
 ```

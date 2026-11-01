@@ -40,9 +40,7 @@ _ALIASES = {"нур-султан": "астана", "nur-sultan": "астана"}
 KASPI_CITY_IDS = {name: kaspi for ru, lat, kaspi, _, _ in _CITIES for name in (ru, lat)}
 OLX_CITY_IDS = {name: olx for ru, lat, _, olx, _ in _CITIES for name in (ru, lat)}
 # A city's region, by its name or its OLX city_id ("1" -> "8").
-OLX_REGION_IDS = {
-    key: region for ru, lat, _, olx, region in _CITIES for key in (ru, lat, olx)
-}
+OLX_REGION_IDS = {key: region for ru, lat, _, olx, region in _CITIES for key in (ru, lat, olx)}
 
 
 def _key(name: str | None) -> str:
