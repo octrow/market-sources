@@ -75,18 +75,20 @@ def _rs_text(nodes: list | None) -> str:
     return re.sub(r"\s+", " ", " ".join(p for p in parts if p)).strip()
 
 
+def _styled_text(prices: list, style: str) -> str | None:
+    """The text of the first price entry with this ``textStyle``."""
+    return next((p.get("text") for p in prices if p.get("textStyle") == style), None)
+
+
 def _search_price(main_state: list) -> tuple[int | None, int | None]:
     for block in main_state:
         if block.get("type") != "priceV2":
             continue
         prices = (block.get("priceV2") or {}).get("price") or []
-        price_text = next((p.get("text") for p in prices if p.get("textStyle") == "PRICE"), None)
+        price_text = _styled_text(prices, "PRICE")
         if not price_text or _INSTALLMENT_RE.search(price_text):
             continue
-        old_text = next(
-            (p.get("text") for p in prices if p.get("textStyle") == "ORIGINAL_PRICE"), None
-        )
-        return price_to_int(price_text), price_to_int(old_text)
+        return price_to_int(price_text), price_to_int(_styled_text(prices, "ORIGINAL_PRICE"))
     return None, None
 
 
