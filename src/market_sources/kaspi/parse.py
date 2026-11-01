@@ -88,44 +88,54 @@ def _card_link(shop_link: str | None) -> str | None:
 def parse_search(payload: dict) -> list[RawProduct]:
     """Parse a search (``product-view/pl/filters``) response into ``RawProduct``s."""
     cards = (payload.get("data") or {}).get("cards") or []
-    products = []
-    for card in cards:
-        product_id = _numeric_product_id(card)
-        title = card.get("title")
-        if not product_id or not title:
-            logger.debug(
-                "kaspi: skipping card with no numeric id: raw_id=%r shop_link=%r",
-                card.get("id"),
-                card.get("shopLink"),
-            )
-            continue
-        price = card.get("unitSalePrice") or card.get("unitPrice")
-        images = _card_images(card)
-        # The id offers/reviews/specs answer to; fashion variants need it.
-        config_sku = str(card["configSku"]) if card.get("configSku") else None
-        partner = card.get("isBrandOfficialPartner")
-        category = card.get("categoryRu") or card.get("category")
-        products.append(
-            RawProduct(
-                source=SOURCE,
-                product_id=product_id,
-                title=title,
-                price=float(price) if price is not None else None,
-                url=_card_link(card.get("shopLink")),
-                image_url=images[0] if images else None,
-                image_urls=images,
-                rating=card.get("rating"),
-                review_count=card.get("reviewsQuantity"),
-                specs_available=bool(config_sku) or not _has_variant_letter_suffix(card),
-                brand=card.get("brand") or None,
-                review_id=config_sku if config_sku != product_id else None,
-                official_partner=partner if isinstance(partner, bool) else None,
-                category_path=[c for c in category if isinstance(c, str)]
-                if isinstance(category, list)
-                else [],
-            )
+    return [product for card in cards if (product := _parse_card(card)) is not None]
+
+
+def _parse_card(card: dict) -> RawProduct | None:
+    """One search card -> ``RawProduct``; ``None`` for a card with no numeric id or title."""
+    product_id = _numeric_product_id(card)
+    title = card.get("title")
+    if not product_id or not title:
+        logger.debug(
+            "kaspi: skipping card with no numeric id: raw_id=%r shop_link=%r",
+            card.get("id"),
+            card.get("shopLink"),
         )
-    return products
+        return None
+    images = _card_images(card)
+    # The id offers/reviews/specs answer to; fashion variants need it.
+    config_sku = str(card["configSku"]) if card.get("configSku") else None
+    partner = card.get("isBrandOfficialPartner")
+    return RawProduct(
+        source=SOURCE,
+        product_id=product_id,
+        title=title,
+        price=_card_price(card),
+        url=_card_link(card.get("shopLink")),
+        image_url=images[0] if images else None,
+        image_urls=images,
+        rating=card.get("rating"),
+        review_count=card.get("reviewsQuantity"),
+        specs_available=bool(config_sku) or not _has_variant_letter_suffix(card),
+        brand=card.get("brand") or None,
+        review_id=config_sku if config_sku != product_id else None,
+        official_partner=partner if isinstance(partner, bool) else None,
+        category_path=_card_category_path(card),
+    )
+
+
+def _card_price(card: dict) -> float | None:
+    """The sale price, else the list price; ``None`` when the card has neither."""
+    price = card.get("unitSalePrice") or card.get("unitPrice")
+    return float(price) if price is not None else None
+
+
+def _card_category_path(card: dict) -> list[str]:
+    """The card's category chain, root first; ``[]`` when it isn't a list."""
+    category = card.get("categoryRu") or card.get("category")
+    if not isinstance(category, list):
+        return []
+    return [c for c in category if isinstance(c, str)]
 
 
 def parse_facets(payload: dict) -> dict[str, list[tuple[str, str]]]:
