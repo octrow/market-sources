@@ -241,27 +241,26 @@ def parse_reviews(page: dict, product_id: str) -> list[RawReview]:
     """Parse the ``webListReviews`` widget into ``RawReview``s."""
     widget = _widget(page, "webListReviews") or {}
     raw = widget.get("reviews") or widget.get("items") or []
-    result = []
-    for review in raw:
-        content = review.get("content") or {}
-        score = content.get("score")
-        purchased = review.get("isItemPurchased")
-        result.append(
-            RawReview(
-                source=SOURCE,
-                product_id=str(product_id),
-                rating=float(score) if isinstance(score, (int, float)) else None,
-                author=_review_author(review),
-                text=_review_text(content),
-                created_at=_unix_to_date(review.get("publishedAt") or review.get("createdAt")),
-                pros=content.get("positive") or None,
-                cons=content.get("negative") or None,
-                useful=_helpful_votes(review),
-                purchased=purchased if isinstance(purchased, bool) else None,
-                has_photos=_has_photos(content),
-            )
-        )
-    return result
+    return [_parse_review(review, str(product_id)) for review in raw]
+
+
+def _parse_review(review: dict, product_id: str) -> RawReview:
+    content = review.get("content") or {}
+    score = content.get("score")
+    purchased = review.get("isItemPurchased")
+    return RawReview(
+        source=SOURCE,
+        product_id=product_id,
+        rating=float(score) if isinstance(score, (int, float)) else None,
+        author=_review_author(review),
+        text=_review_text(content),
+        created_at=_unix_to_date(review.get("publishedAt") or review.get("createdAt")),
+        pros=content.get("positive") or None,
+        cons=content.get("negative") or None,
+        useful=_helpful_votes(review),
+        purchased=purchased if isinstance(purchased, bool) else None,
+        has_photos=_has_photos(content),
+    )
 
 
 __all__ = [
