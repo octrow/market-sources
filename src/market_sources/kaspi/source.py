@@ -1,5 +1,7 @@
 """``ProductSource`` implementation for Kaspi.kz."""
 
+from typing import Any
+
 from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
 from market_sources.cities import kaspi_city_id, resolve_city
 from market_sources.kaspi.client import DEFAULT_CITY, KaspiClient
@@ -56,7 +58,7 @@ class KaspiSource:
         """
         client = self._client_for_city(city)
         # Only pass what is set, so an injected client without these keeps working.
-        extra: dict[str, object] = {"budget": budget} if budget is not None else {}
+        extra: dict[str, Any] = {"budget": budget} if budget is not None else {}
         if page:
             extra["page"] = page
         if filters:

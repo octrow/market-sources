@@ -8,6 +8,7 @@ and returns models or plain dicts. Keeps ``client.py`` (network) and this module
 import logging
 import re
 from datetime import UTC, datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from market_sources.base import RawOffer, RawProduct, RawReview, RawReviewStats
@@ -180,7 +181,7 @@ def _delivery_date(raw: object) -> str | None:
     return moment.astimezone(ZoneInfo(DELIVERY_TIMEZONE)).date().isoformat()
 
 
-def _delivery_cost(raw: object) -> float | None:
+def _delivery_cost(raw: Any) -> float | None:
     try:
         return float(raw)
     except (TypeError, ValueError):

@@ -16,7 +16,7 @@ async def main():
     print(f"{p.title}: {len(offers)} offers\n")
     for o in offers[:5]:
         print(
-            f"  {o.price:>9,.0f} {o.currency}  {o.seller[:22]:<22} {(f'{o.merchant_rating}★' if o.merchant_rating else '  —'):>4}  {o.delivery}"
+            f"  {o.price:>9,.0f} {o.currency}  {(o.seller or '—')[:22]:<22} {(f'{o.merchant_rating}★' if o.merchant_rating else '  —'):>4}  {o.delivery}"
         )
     await kaspi.aclose()
 
