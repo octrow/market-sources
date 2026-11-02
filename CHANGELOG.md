@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-02
+
+### Security
+
+- `BrowserSession` creates its saved session file (cookies) with mode 0600 from the first byte, in a 0700 directory.
+  Before, Playwright wrote it with the process umask (usually 0644) and the mode was tightened only afterwards, so
+  other users on the machine could read the cookies in between.
+
 ## [0.6.1] - 2026-11-01
 
 ### Changed
