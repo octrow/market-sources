@@ -174,8 +174,8 @@ Module: `kaspi/parse`, `olx/parse`, `ozon/parse`, `base`
 ### 7. Remember
 
 Decides: what a search leaves behind for later calls.
-- Kaspi: `product_id → configSku`, `product_id → cityId`, `(query, city) → facets`; all in-memory, never evicted; the last search wins on a repeated key;
-- OLX: the full raw listing of every search result by id (`_offer_cache`, keyed by `str(id)`), never evicted: use one source per run; `category_of(id)` reads it;
+- Kaspi: `product_id → configSku`, `product_id → cityId`, `(query, city) → facets`; all in-memory LRU maps (10000, 10000 and 500 entries); the last search wins on a repeated key;
+- OLX: the full raw listing of every search result by id (`_offer_cache`, keyed by `str(id)`), LRU-capped at `OLX_OFFER_CACHE_SIZE` (5000); `category_of(id)` reads it;
 - Ozon: the last product page payload (path, time, payload) for 60 s, so `offers` and `specs` of one product share one navigation; Kimovil: nothing.
 Side effects outside memory: none for HTTP sources. Ozon writes the browser state file only in `bootstrap` (step 12); search never writes.
 Module: `kaspi/source`, `olx/source`

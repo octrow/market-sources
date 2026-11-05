@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 from market_sources.base import RawOffer, RawProduct, RawReview
 from market_sources.cities import olx_city_id, olx_region_id, resolve_city
+from market_sources.lru import LRUDict
 from market_sources.olx.client import DEFAULT_CITY_ID, DEFAULT_LIMIT, PRICE_ASC, OlxClient
 from market_sources.olx.parse import parse_offer, parse_search, parse_specs
 
@@ -16,6 +17,7 @@ TARGET_RESULTS = 50
 # OLX never shows more than 1000 results per search: total_elements stops at 1000
 # and an offset past it is a 400 (checked 2026-10-13).
 OLX_RESULT_CAP = 1000
+OLX_OFFER_CACHE_SIZE = 5000  # ~30 MB worst case (assumed ~6 KB per raw listing)
 # A narrower price range than this is not split further, even if it is still capped.
 MIN_PRICE_SLICE_KZT = 1000
 
@@ -52,7 +54,7 @@ class OlxSource:
     location), so we cache raw offers from every search and serve ``specs`` /
     ``offers`` from that cache — no per-listing detail HTTP call when the offer
     was already seen in a search (falls back to a detail fetch otherwise). The cache
-    lives as long as the source and never evicts: use one source per run.
+    is an LRU capped at ``OLX_OFFER_CACHE_SIZE`` entries.
     """
 
     name = "olx"
@@ -60,7 +62,7 @@ class OlxSource:
     def __init__(self, client: OlxClientLike | None = None, *, proxy: str | None = None) -> None:
         self._client: OlxClientLike = client or OlxClient(proxy=proxy)
         self._proxy = proxy
-        self._offer_cache: dict[str, dict[str, Any]] = {}
+        self._offer_cache: LRUDict[str, dict[str, Any]] = LRUDict(OLX_OFFER_CACHE_SIZE)
         self._city_clients: dict[str, OlxClientLike] = {}
 
     def _cache_offers(self, payload: dict) -> None:

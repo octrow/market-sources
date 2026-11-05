@@ -13,6 +13,7 @@ from market_sources.kaspi.parse import (
     parse_search,
     parse_specs,
 )
+from market_sources.lru import LRUDict
 
 # ``filter="NEGATIVE"`` returns only the low-rated reviews; ask for more of them
 # than the default page, since they are what a buyer reads first.
@@ -41,6 +42,10 @@ class KaspiClientLike(Protocol):
     async def aclose(self) -> None: ...
 
 
+KASPI_MAP_SIZE = 10_000  # product_id -> sku / city entries
+KASPI_FACETS_SIZE = 500  # (query, city) -> facets
+
+
 class KaspiSource:
     """Marketplace adapter for Kaspi.kz, wiring ``KaspiClient`` + ``parse``.
 
@@ -59,9 +64,15 @@ class KaspiSource:
         self._client: KaspiClientLike = client or KaspiClient(proxy=proxy)
         self._proxy = proxy
         self._city_clients: dict[str, KaspiClientLike] = {}
-        self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
-        self._product_cities: dict[str, str] = {}  # product_id -> cityId, from search
-        self._facets: dict[tuple[str, str], dict[str, list[tuple[str, str]]]] = {}
+        self._api_ids: LRUDict[str, str] = LRUDict(
+            KASPI_MAP_SIZE
+        )  # product_id -> configSku, from search
+        self._product_cities: LRUDict[str, str] = LRUDict(
+            KASPI_MAP_SIZE
+        )  # product_id -> cityId, from search
+        self._facets: LRUDict[tuple[str, str], dict[str, list[tuple[str, str]]]] = LRUDict(
+            KASPI_FACETS_SIZE
+        )
 
     async def search(
         self,
