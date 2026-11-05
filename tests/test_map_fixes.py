@@ -69,6 +69,20 @@ async def test_search_all_keeps_the_pages_it_got_when_one_fails(caplog):
     assert any("offset 50" in r.message for r in caplog.records)
 
 
+async def test_search_all_logs_failure_type_source_and_a_summary(caplog):
+    class Flaky(StubOlxClient):
+        async def search(self, query, offset=0, **kwargs):
+            if offset == 50:
+                raise httpx.ReadTimeout("boom")
+            return olx_page(offset + 1, 50, 150)
+
+    with caplog.at_level(logging.WARNING):
+        await OlxSource(client=Flaky()).search_all("x", 0, 10)
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any("OLX" in m and "ReadTimeout" in m and "boom" in m and "'x'" in m for m in msgs)
+    assert any("1 of 2 pages failed" in m for m in msgs)
+
+
 # ---- #9 int id hits the cache
 
 

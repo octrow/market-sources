@@ -8,7 +8,7 @@
 - ✅ 2026-11-05 MEDIUM: `OlxSource._offer_cache` теперь LRU на 5000 записей (`src/market_sources/lru.py`), не закоммичено
 - ✅ 2026-11-05 MEDIUM: `_facets` и карты sku/city в Kaspi ограничены LRU, не закоммичено
 - [ ] MEDIUM: семафор `PoliteClient` держится через паузы retry и таймауты, два зависших запроса стопорят клиента; нет cooldown после N подряд 403/429 — `src/market_sources/polite_http.py:229`
-- [ ] MEDIUM: `search_all` пропускает упавшие страницы с предупреждением, выдача молча неполная; клиенты по городам умножают конкурентность — `src/market_sources/olx/source.py:174`
+- ✅ 2026-11-05 MEDIUM: `search_all` пропускает упавшие страницы с предупреждением, выдача молча неполная; клиенты по городам умножают конкурентность — `src/market_sources/olx/source.py:174`
 - [ ] MEDIUM: Ozon держится на ручном bootstrap cookies, он уже протухал (`ozon_state.json.expired`), алерта и автоматического fallback нет — `src/market_sources/playwright_session.py`
 
 ## Планы и фичи

@@ -115,7 +115,7 @@ Branches (OLX `search`):
 Branches (Ozon `search`): path `/search/?text=...&from_global=true`, plus `currency_price=0.000;<budget>.000` when `budget` is given; wrapped into a composer-api URL.
 Kimovil: no search request here; see step 11.
 Fails: a refused or 4xx request is step 5; `search_all` slices that stay capped (width at most 1000 KZT, still 1000 results) are returned truncated, with a warning naming the slice.
-`search_all` gathers all pages in one `asyncio.gather` with `return_exceptions`: a failed page is logged (warning, with its offset) and skipped, the rest are kept; a failed second page of `search` still loses the first.
+`search_all` gathers all pages in one `asyncio.gather` with `return_exceptions`: a failed page is logged (warning: offset, query, exception type and message) and skipped, the rest are kept, then one summary warning "N of M pages failed" is logged (no `partial` flag, by owner decision); a failed second page of `search` still loses the first.
 Module: `kaspi/client`, `kaspi/source`, `olx/client`, `olx/source`, `ozon/source`, `ozon/browser`
 
 ### 4. Send the request

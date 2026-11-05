@@ -174,13 +174,28 @@ class OlxSource:
             for offset in _later_offsets(first)
         ]
         results = await asyncio.gather(*(r for _, r in requests), return_exceptions=True)
+        failed = 0
         for (offset, _), result in zip(requests, results, strict=True):
             if isinstance(result, Exception):
-                logger.warning("OLX page at offset %d failed, skipped: %s", offset, result)
+                failed += 1
+                logger.warning(
+                    "OLX search_all page at offset %d for %r failed, skipped: %s: %s",
+                    offset,
+                    query,
+                    type(result).__name__,
+                    result,
+                )
             elif isinstance(result, BaseException):
                 raise result
             else:
                 pages.append(result)
+        if failed:
+            logger.warning(
+                "OLX search_all for %r: %d of %d pages failed, result is partial",
+                query,
+                failed,
+                len(requests),
+            )
         products: dict[str, RawProduct] = {}
         for page in pages:
             self._cache_offers(page)
