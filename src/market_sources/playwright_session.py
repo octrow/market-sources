@@ -203,6 +203,8 @@ class BrowserSession:
                 except BrowserSessionError:
                     raise
                 except Exception as err:  # noqa: BLE001 — classified below
+                    if type(err).__name__ == "TimeoutError":  # playwright's, or asyncio's
+                        raise self.error_class(f"navigation timed out for {url}") from err
                     if self.is_dead_browser_error(err) and attempt < retries:
                         log.debug("browser session: dead browser (%s); relaunching", err)
                         await self._shutdown()

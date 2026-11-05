@@ -57,7 +57,7 @@ class KimovilSource:
                 logger.info("Kimovil: no confident match for %r", query)
                 return None
             return parse_phone(await self._client.page(hit.slug), hit)
-        except httpx.HTTPError as exc:
+        except (httpx.HTTPError, ValueError) as exc:  # ValueError: a 200 that is not JSON
             logger.warning("Kimovil lookup failed for %r: %s", query, exc)
             return None
 

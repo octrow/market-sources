@@ -92,13 +92,21 @@ def _search_price(main_state: list) -> tuple[int | None, int | None]:
     return None, None
 
 
+def _to_float(text: str | None) -> float | None:
+    """A decimal-comma rating text as a float; None when it is empty or not a number."""
+    try:
+        return float(text.replace(",", ".")) if text else None
+    except ValueError:
+        return None
+
+
 def _search_rating(main_state: list) -> tuple[float | None, int | None]:
     for block in main_state:
         labels = block.get("labelListV2")
         if not labels or "ic_s_star" not in json.dumps(labels):
             continue
         texts = [i.get("text", {}).get("text") for i in labels.get("items", []) if i.get("text")]
-        rating = float(texts[0].replace(",", ".")) if texts and texts[0] else None
+        rating = _to_float(texts[0] if texts else None)
         reviews = price_to_int(texts[1]) if len(texts) > 1 else None
         return rating, reviews
     return None, None
@@ -164,7 +172,7 @@ def _parse_seller(page: dict) -> dict | None:
     if not name:
         return None
     rating_text = (widget.get("rating") or {}).get("title", {}).get("text")
-    rating = float(rating_text.replace(",", ".")) if rating_text else None
+    rating = _to_float(rating_text)
     return {"name": name, "rating": rating}
 
 

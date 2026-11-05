@@ -129,9 +129,9 @@ def test_a_priceless_ad_yields_no_offer():
 
 
 def test_parse_specs_surfaces_condition_seller_type_and_city():
-    assert parse_specs(listing()) == {
+    assert parse_specs(listing(business=True)) == {
         "condition": "Б/у",
-        "seller_type": "private",
+        "seller_type": "business",
         "city": "Алматы",
     }
 
@@ -166,8 +166,8 @@ def test_an_explicit_seller_type_wins_over_the_business_flag():
     assert parse_specs(listing_data)["seller_type"] == "shop"
 
 
-def test_specs_of_an_empty_offer_still_reports_a_seller_type():
-    assert parse_specs({}) == {"seller_type": "private"}
+def test_specs_of_an_empty_offer_are_empty():
+    assert parse_specs({}) == {}
 
 
 # --------------------------------------------------------------- client wiring

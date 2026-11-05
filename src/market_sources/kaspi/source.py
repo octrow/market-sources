@@ -57,6 +57,7 @@ class KaspiSource:
 
     def __init__(self, client: KaspiClientLike | None = None, *, proxy: str | None = None) -> None:
         self._client: KaspiClientLike = client or KaspiClient(proxy=proxy)
+        self._proxy = proxy
         self._city_clients: dict[str, KaspiClientLike] = {}
         self._api_ids: dict[str, str] = {}  # product_id -> configSku, from search
         self._product_cities: dict[str, str] = {}  # product_id -> cityId, from search
@@ -106,6 +107,7 @@ class KaspiSource:
         """Return seller offers for ``product_id`` in ``city``.
 
         Without ``city``, the city ``search`` found the product in, else the default.
+        Only the first 32 offers (Kaspi's own order) are read; there is no paging.
         """
         client = self._client_for_city(city or self._product_cities.get(str(product_id)))
         payload = await client.offers(self._api_id(product_id))
@@ -127,7 +129,8 @@ class KaspiSource:
 
         ``review_id`` overrides the id sent to Kaspi (a card's ``configSku``);
         without it the one remembered from ``search`` is used. ``negative``
-        fetches only low-rated reviews, up to ``NEGATIVE_LIMIT``.
+        fetches only low-rated reviews, up to ``NEGATIVE_LIMIT``. Otherwise at most 9
+        reviews: a sample by design, there is no paging.
         """
         api_id = self._api_id(product_id, review_id)
         if negative:
@@ -159,6 +162,8 @@ class KaspiSource:
             return self._client
         if city not in self._city_clients:
             proxy = getattr(getattr(self._client, "http", None), "proxy", None)
+            if proxy is None:  # an injected client with no .http: keep the one we were given
+                proxy = self._proxy
             self._city_clients[city] = KaspiClient(city=city, proxy=proxy)
         return self._city_clients[city]
 

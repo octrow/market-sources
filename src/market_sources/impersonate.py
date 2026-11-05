@@ -14,9 +14,12 @@ module imports fine without it; check :func:`available` before choosing it.
 from __future__ import annotations
 
 import importlib.util
+import logging
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_IMPERSONATE = "chrome"
 
@@ -29,6 +32,16 @@ _DROP_RESPONSE_HEADERS = frozenset({"content-encoding", "content-length", "trans
 def available() -> bool:
     """True when the ``impersonate`` extra (curl_cffi) is installed."""
     return importlib.util.find_spec("curl_cffi") is not None
+
+
+def warn_if_missing(site: str) -> None:
+    """Log a warning that ``site`` runs on plain httpx because curl_cffi is not installed."""
+    if not available():
+        logger.warning(
+            "curl_cffi is not installed: %s runs on plain httpx and its WAF may answer 403 "
+            "(pip install 'market-sources[impersonate]')",
+            site,
+        )
 
 
 def _curl_errors() -> tuple[type[BaseException], ...]:
@@ -88,4 +101,4 @@ def _to_httpx(resp: Any, request: httpx.Request) -> httpx.Response:
     return httpx.Response(resp.status_code, headers=headers, content=resp.content, request=request)
 
 
-__all__ = ["DEFAULT_IMPERSONATE", "ImpersonateTransport", "available"]
+__all__ = ["DEFAULT_IMPERSONATE", "ImpersonateTransport", "available", "warn_if_missing"]

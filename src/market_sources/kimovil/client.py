@@ -38,6 +38,8 @@ class KimovilClient:
     """Thin async wrapper around Kimovil's autocomplete endpoint and spec pages."""
 
     def __init__(self, *, proxy: str | None = None, http: PoliteClient | None = None) -> None:
+        if http is None:
+            impersonate.warn_if_missing("Kimovil")
         self.http = http or PoliteClient(
             user_agent=USER_AGENT,
             max_concurrency=MAX_CONCURRENCY,

@@ -88,6 +88,16 @@ class OzonBrowser(BrowserSession):
         if _ANTIBOT_RE.search(title or ""):
             raise OzonError(f"anti-bot challenge not passed (title: {title!r})")
 
+    async def bootstrap(self, probe_url: str | None = None, **kwargs: Any) -> bool:
+        """Save a session; the file defaults to :func:`ozon_state_path`, the probe to the API.
+
+        Works on a fresh machine too: with no state file yet the browser was built
+        anonymous, so the first save picks the default path.
+        """
+        if self.state_path is None:
+            self.state_path = ozon_state_path()
+        return await super().bootstrap(probe_url or self.composer_url("/"), **kwargs)
+
     def composer_url(self, path: str) -> str:
         """The composer-api JSON URL for a site ``path`` (e.g. ``/search/?text=x``)."""
         return f"{self.base}/api/composer-api.bx/page/json/v2?url=" + quote(path, safe="")

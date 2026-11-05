@@ -48,6 +48,8 @@ class OlxClient:
         self.city_id = city_id
         # Set: search the whole region (the city's oblast, villages around it too).
         self.region_id = region_id
+        if http is None:
+            impersonate.warn_if_missing("OLX")
         self.http = http or PoliteClient(
             user_agent=USER_AGENT,
             max_concurrency=MAX_CONCURRENCY,

@@ -58,6 +58,8 @@ def model_query(title: str) -> str:
 def parse_autocomplete(payload: dict) -> list[KimovilHit]:
     """Smartphone hits from the autocomplete JSON; rumours and other devices dropped."""
     hits = []
+    if not isinstance(payload, dict):
+        return hits
     for result in payload.get("results") or []:
         if result.get("is_rumor") or result.get("result_type", SMARTPHONES) != SMARTPHONES:
             continue

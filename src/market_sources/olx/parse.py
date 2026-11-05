@@ -63,11 +63,12 @@ def _condition(offer: dict) -> str | None:
     return state.get("label") or state.get("key")
 
 
-def _seller_type(offer: dict) -> str:
+def _seller_type(offer: dict) -> str | None:
+    """The seller type the listing states; None when it says nothing (not "private")."""
     user = offer.get("user") or {}
     if user.get("seller_type"):
         return str(user["seller_type"])
-    return "business" if offer.get("business") else "private"
+    return "business" if offer.get("business") else None
 
 
 def _description(offer: dict) -> str | None:
@@ -134,7 +135,9 @@ def parse_specs(offer: dict) -> dict[str, str]:
     condition = _condition(offer)
     if condition:
         specs["condition"] = condition
-    specs["seller_type"] = _seller_type(offer)
+    seller_type = _seller_type(offer)
+    if seller_type:
+        specs["seller_type"] = seller_type
     city = _city(offer)
     if city:
         specs["city"] = city

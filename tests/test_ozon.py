@@ -389,9 +389,8 @@ async def test_the_source_wires_the_browser_to_the_parsers():
     await source.aclose()
     assert stub.paths == [
         "/search/?text=iphone%2015&from_global=true",
-        "/product/1234567890/",
+        "/product/1234567890/",  # offers and specs share this one fetch
         "/product/1234567890/reviews/",
-        "/product/1234567890/",
     ]
     assert stub.closed is True
 

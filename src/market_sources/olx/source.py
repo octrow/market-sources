@@ -51,13 +51,15 @@ class OlxSource:
     Search responses already carry each offer's full ``params`` (price, state,
     location), so we cache raw offers from every search and serve ``specs`` /
     ``offers`` from that cache — no per-listing detail HTTP call when the offer
-    was already seen in a search (falls back to a detail fetch otherwise).
+    was already seen in a search (falls back to a detail fetch otherwise). The cache
+    lives as long as the source and never evicts: use one source per run.
     """
 
     name = "olx"
 
     def __init__(self, client: OlxClientLike | None = None, *, proxy: str | None = None) -> None:
         self._client: OlxClientLike = client or OlxClient(proxy=proxy)
+        self._proxy = proxy
         self._offer_cache: dict[str, dict[str, Any]] = {}
         self._city_clients: dict[str, OlxClientLike] = {}
 
@@ -119,7 +121,8 @@ class OlxSource:
         """
         client = self._client_for_region(city) if region else self._client_for_city(city)
         products: dict[str, RawProduct] = {}
-        for offset in range(0, min(limit, OLX_RESULT_CAP), DEFAULT_LIMIT):
+        offset = 0
+        while offset < min(limit, OLX_RESULT_CAP):
             page = await client.search(
                 query,
                 offset=offset,
@@ -131,8 +134,10 @@ class OlxSource:
             self._cache_offers(page)
             for product in parse_search(page):
                 products.setdefault(product.product_id, product)
-            if len(page.get("data") or []) < DEFAULT_LIMIT // 2:
+            fetched = len(page.get("data") or [])
+            if fetched < DEFAULT_LIMIT // 2:
                 break
+            offset += fetched  # the page size OLX really returns (~40), not the one asked for
         logger.info("OLX fetched %d cheapest listings for %r", len(products), query)
         return list(products.values())[:limit]
 
@@ -153,13 +158,27 @@ class OlxSource:
         client = self._client_for_city(city)
         slices = await self._price_slices(client, query, min_price, max_price)
         pages = [first for _, _, first in slices]
-        pages += await asyncio.gather(
-            *(
-                client.search(query, offset=offset, budget=hi, min_price=lo)
-                for lo, hi, first in slices
-                for offset in range(DEFAULT_LIMIT, _visible_total(first), DEFAULT_LIMIT)
-            )
-        )
+        for lo, hi, first in slices:
+            if _visible_total(first) >= OLX_RESULT_CAP:
+                logger.warning(
+                    "OLX %d-%d is still capped at %d results: the slice is incomplete",
+                    lo,
+                    hi,
+                    OLX_RESULT_CAP,
+                )
+        requests = [
+            (offset, client.search(query, offset=offset, budget=hi, min_price=lo))
+            for lo, hi, first in slices
+            for offset in _later_offsets(first)
+        ]
+        results = await asyncio.gather(*(r for _, r in requests), return_exceptions=True)
+        for (offset, _), result in zip(requests, results, strict=True):
+            if isinstance(result, Exception):
+                logger.warning("OLX page at offset %d failed, skipped: %s", offset, result)
+            elif isinstance(result, BaseException):
+                raise result
+            else:
+                pages.append(result)
         products: dict[str, RawProduct] = {}
         for page in pages:
             self._cache_offers(page)
@@ -212,6 +231,7 @@ class OlxSource:
 
     async def _offer(self, product_id: str) -> dict:
         """Cached raw offer for ``product_id``, fetching detail only on a miss."""
+        product_id = str(product_id)
         cached = self._offer_cache.get(product_id)
         if cached is not None:
             return cached
@@ -221,6 +241,11 @@ class OlxSource:
             self._offer_cache[product_id] = offer
         return offer
 
+    def _extra_proxy(self) -> str | None:
+        """The proxy for extra clients: the default client's, else the one given to us."""
+        proxy = getattr(getattr(self._client, "http", None), "proxy", None)
+        return proxy if proxy is not None else self._proxy
+
     def _client_for_region(self, city: str | None) -> OlxClientLike:
         """A client for the region of ``city`` (default: the default client's city)."""
         region = olx_region_id(resolve_city(city, olx_city_id) or self._client.city_id)
@@ -228,7 +253,7 @@ class OlxSource:
             return self._client_for_city(city)
         key = f"region:{region}"
         if key not in self._city_clients:
-            proxy = getattr(getattr(self._client, "http", None), "proxy", None)
+            proxy = self._extra_proxy()
             self._city_clients[key] = OlxClient(region_id=region, proxy=proxy)
         return self._city_clients[key]
 
@@ -238,9 +263,16 @@ class OlxSource:
         if city is None or city == self._client.city_id:
             return self._client
         if city not in self._city_clients:
-            proxy = getattr(getattr(self._client, "http", None), "proxy", None)
+            proxy = self._extra_proxy()
             self._city_clients[city] = OlxClient(city_id=city, proxy=proxy)
         return self._city_clients[city]
+
+
+def _later_offsets(first: dict) -> range:
+    """Offsets of the pages after ``first``, stepping by the page size OLX returned."""
+    fetched = len(first.get("data") or [])
+    step = fetched if fetched >= DEFAULT_LIMIT // 2 else DEFAULT_LIMIT
+    return range(step, _visible_total(first), step)
 
 
 def _visible_total(payload: dict) -> int:

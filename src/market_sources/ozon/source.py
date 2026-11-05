@@ -1,5 +1,6 @@
 """``ProductSource`` implementation for Ozon.kz."""
 
+import time
 from typing import Protocol
 from urllib.parse import quote
 
@@ -28,6 +29,10 @@ def search_path(query: str, budget: int | None = None) -> str:
     return path
 
 
+# offers() and specs() read the same product page; one fetch serves both within this window.
+PRODUCT_PAGE_TTL_S = 60.0
+
+
 class OzonBrowserLike(Protocol):
     """What ``OzonSource`` calls on its browser: ``OzonBrowser``, or a stand-in."""
 
@@ -49,6 +54,18 @@ class OzonSource:
         self, browser: OzonBrowserLike | None = None, *, base_url: str | None = None
     ) -> None:
         self._browser: OzonBrowserLike = browser or OzonBrowser(base_url=base_url)
+        self._product_page: tuple[str, float, dict] | None = None  # path, fetched at, payload
+
+    async def _product(self, product_id: str) -> dict:
+        """The product page payload, reusing the last fetch of the same path for a minute."""
+        path = product_path(product_id)
+        now = time.monotonic()
+        cached = self._product_page
+        if cached and cached[0] == path and now - cached[1] < PRODUCT_PAGE_TTL_S:
+            return cached[2]
+        payload = await self._browser.fetch_json(path)
+        self._product_page = (path, now, payload)
+        return payload
 
     async def search(
         self, query: str, city: str | None = None, budget: int | None = None
@@ -59,7 +76,7 @@ class OzonSource:
 
     async def offers(self, product_id: str) -> list[RawOffer]:
         """Return the single PDP offer for ``product_id`` (Ozon has no seller list)."""
-        payload = await self._browser.fetch_json(product_path(product_id))
+        payload = await self._product(product_id)
         offer = parse_offer(payload, product_id)
         return [offer] if offer else []
 
@@ -70,7 +87,7 @@ class OzonSource:
 
     async def specs(self, product_id: str) -> dict[str, str]:
         """Return raw specification key/value pairs for ``product_id``."""
-        payload = await self._browser.fetch_json(product_path(product_id))
+        payload = await self._product(product_id)
         return parse_specs(payload)
 
     async def aclose(self) -> None:
