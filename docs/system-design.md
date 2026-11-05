@@ -118,7 +118,7 @@ Failures:
 ## 7. Trade-offs
 
 - Politeness vs throughput: fixed low concurrency and delays protect IPs and cost minutes per sweep. Correct for one user.
-- Fail loud vs partial: HTTP errors propagate, but `search_all` skips failed pages with a warning, so a sweep can silently return fewer rows.
+- Fail loud vs partial: HTTP errors propagate, but `search_all` skips failed pages: each is logged, plus one "N of M pages failed, result is partial" warning, so a sweep can return fewer rows with only a log line to show for it (no `partial` flag, by owner decision).
 - Memory vs requests: in-memory memo dicts save re-fetches; LRU caps bound them (OLX up to ~30 MB), an evicted entry costs a re-fetch or, in Kaspi, a fallback to the default id/city.
 - Raw output vs normalised: keeps the library thin, pushes work onto every consumer.
 - Browser vs HTTP for Ozon: Chromium is the only way through the challenge; costs ~300 MB RAM and serial access.
@@ -134,10 +134,10 @@ Next rung: consumer-side result cache plus proxy pool. Trigger: 403/429 above ~5
 
 ## Risks
 
-- ✅ 2026-11-05 MEDIUM, `olx/source.py`: `_offer_cache` now an LRU capped at 5000 entries (~30 MB worst case); not committed.
-- ✅ 2026-11-05 MEDIUM, `kaspi/source.py`: `_facets` and the sku/city maps now LRU-capped; not committed.
+- ✅ 2026-11-05 MEDIUM, `olx/source.py`: `_offer_cache` now an LRU capped at 5000 entries (~30 MB worst case); b677a7c.
+- ✅ 2026-11-05 MEDIUM, `kaspi/source.py`: `_facets` and the sku/city maps now LRU-capped; b677a7c.
 - MEDIUM, `src/market_sources/polite_http.py:229`: the semaphore is held across retry sleeps and timeouts; with `Retry-After` up to 30 s two blocked calls stall the whole client. No circuit breaker, so a banned IP keeps being hit. Add a cooldown after N consecutive 403/429.
-- MEDIUM, `src/market_sources/olx/source.py:174`: `search_all` fans out all pages in one gather per sweep; per-client semaphore bounds the rate, but per-city clients multiply concurrency, and skipped pages make results silently incomplete (see logic-map step 3).
+- MEDIUM, `src/market_sources/olx/source.py:174`: `search_all` fans out all pages in one gather per sweep; per-client semaphore bounds the rate, but per-city clients multiply concurrency. Skipped pages are logged per page and in one summary warning, but the result carries no `partial` flag (owner decision; see logic-map step 3).
 - MEDIUM, `src/market_sources/playwright_session.py` (nav lock, idle timer): Ozon is serial and depends on a manual cookie bootstrap that has already expired once (`ozon_state.json.expired`); no alert, no automatic fallback. Not in logic-map as a scaling risk.
 - LOW, `src/market_sources/ozon/source.py:33`: 60 s page cache shared by `offers` and `specs`; a consumer calling them more than 60 s apart pays two navigations.
 - LOW, whole package: no timing or status metrics, so p95 and block rates cannot be measured; add one debug log per request with status and elapsed time.

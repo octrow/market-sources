@@ -5,10 +5,11 @@
 ## Баги
 
 - [ ] MEDIUM (не подтверждён): Kaspi режет id карточки до ведущих цифр, варианты "16535441a" и "16535441b" делят один `product_id`; нужен живой запуск на fashion-запросе, потом ключ по полному id или `configSku` — [logic-map-fixes #10](docs/plans/2026-11-05-logic-map-fixes.md)
-- ✅ 2026-11-05 MEDIUM: `OlxSource._offer_cache` теперь LRU на 5000 записей (`src/market_sources/lru.py`), не закоммичено
-- ✅ 2026-11-05 MEDIUM: `_facets` и карты sku/city в Kaspi ограничены LRU, не закоммичено
+- ✅ 2026-11-05 MEDIUM: `OlxSource._offer_cache` теперь LRU на 5000 записей (`src/market_sources/lru.py`), b677a7c
+- ✅ 2026-11-05 MEDIUM: `_facets` и карты sku/city в Kaspi ограничены LRU, b677a7c
 - [ ] MEDIUM: семафор `PoliteClient` держится через паузы retry и таймауты, два зависших запроса стопорят клиента; нет cooldown после N подряд 403/429 — `src/market_sources/polite_http.py:229`
-- ✅ 2026-11-05 MEDIUM: `search_all` пропускает упавшие страницы с предупреждением, выдача молча неполная; клиенты по городам умножают конкурентность — `src/market_sources/olx/source.py:174`
+- ✅ 2026-11-05 MEDIUM: `search_all` по-прежнему пропускает упавшие страницы, но теперь пишет по каждой warning (offset, запрос, тип и текст ошибки) и итоговый "N of M pages failed, result is partial"; флага `partial` нет по решению владельца — ef8891d
+- [ ] MEDIUM: у каждого города и региона свой `PoliteClient`, поэтому N городов умножают конкурентность и риск бана на N — `src/market_sources/olx/source.py:277`, [system-design §2](docs/system-design.md)
 - [ ] MEDIUM: Ozon держится на ручном bootstrap cookies, он уже протухал (`ozon_state.json.expired`), алерта и автоматического fallback нет — `src/market_sources/playwright_session.py`
 
 ## Планы и фичи
