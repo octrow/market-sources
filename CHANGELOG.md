@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-11-05
+
+### Changed
+
+- README refreshed: shorter and in plain language. No code changes: this release only refreshes the PyPI description.
+
 ## [0.6.3] - 2026-11-05
 
 ### Fixed
