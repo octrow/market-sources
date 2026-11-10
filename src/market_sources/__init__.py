@@ -10,6 +10,7 @@
 * :mod:`market_sources.kaspi` / ``.olx`` (JSON APIs over ``PoliteClient``) and
   :mod:`market_sources.ozon` (composer-api over ``BrowserSession``).
 * :mod:`market_sources.kimovil` — phone specs by marketplace title (``kimovil`` extra).
+* :mod:`market_sources.wb` — Wildberries through the user's own Chrome over CDP.
 """
 
 from .base import ProductSource, RawOffer, RawProduct, RawReview, RawReviewStats
@@ -19,6 +20,7 @@ from .olx.source import OlxSource
 from .ozon.source import OzonSource
 from .playwright_session import BrowserSession, BrowserSessionError
 from .polite_http import PoliteClient, parse_retry_after
+from .wb.source import WbSource
 
 __all__ = [
     "BrowserSession",
@@ -33,5 +35,6 @@ __all__ = [
     "RawProduct",
     "RawReview",
     "RawReviewStats",
+    "WbSource",
     "parse_retry_after",
 ]

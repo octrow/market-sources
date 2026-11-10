@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-11
+
+### Added
+
+- `WbSource`: Wildberries search in KZT through the user's own Chrome over CDP (`$WB_CDP_URL`). WB refuses scripted HTTP and Playwright-launched browsers; `offers` answers from the search that found the product; reviews and specs are not read yet.
+
 ## [0.6.4] - 2026-11-05
 
 ### Changed

@@ -43,13 +43,15 @@ Each site decides its own gate, id shape, city handling and anti-bot path. There
 | OLX | `PoliteClient` + `ImpersonateTransport` when curl_cffi is installed, else plain httpx | TLS fingerprint | `city_id`, or `region_id` with `region=True` | listing id |
 | Ozon | `BrowserSession` (headless Chromium, navigation) | JS challenge on the home page | none (single region) | sku or `/product/...` path |
 | Kimovil | `PoliteClient` + `ImpersonateTransport` when installed | Cloudflare | none | slug from autocomplete |
+| WB | `WbBrowser`: the user's own Chrome over CDP (`$WB_CDP_URL`, default `http://127.0.0.1:9222`); a tab on the search page keeps the site's own `/exactmatch/` answer | refuses scripted HTTP (403) and Playwright-launched browsers (498); a user-started Chrome passes | the region set in that browser (`dest`, `curr=kzt`) | numeric product id; `offers` answer from the search that found it |
 
 Examples:
 - `KaspiSource.search("iphone 15", city="Астана")` → cityId 710000000 in header, cookie and `c=`.
 - `OlxSource.search("iphone", region=True)` → `region_id=8` (Almaty oblast) instead of `city_id=1`.
 - `OzonSource.search("iphone", city="Астана")` → `city` is ignored.
+- `WbSource.search("худи")` with no Chrome on the CDP port → `WbUnavailable` with the command that starts one.
 
-Module: `cities`, `kaspi/client`, `olx/client`, `ozon/browser`, `kimovil/client`
+Module: `cities`, `kaspi/client`, `olx/client`, `ozon/browser`, `kimovil/client`, `wb/browser`
 
 ## Entry points
 
@@ -61,12 +63,13 @@ All sources take an optional injected client (or browser) and build their own wh
 | `OlxSource(client=None, proxy=None)` | Almaty city_id `1` | `proxy` arg only; no env var | extra cities and regions get their own `OlxClient` |
 | `OzonSource(browser=None, base_url=None)` | none | none | host `base_url`, else `$OZON_BASE_URL`, else `https://www.ozon.kz`; saved session from `$OZON_STATE_PATH` or `~/.config/market_sources/ozon_state.json`, used only if the file exists at construction |
 | `KimovilSource(client=None, proxy=None)` | none | `proxy` arg only | not a `ProductSource` |
+| `WbSource(browser=None)` | the browser's region | none | connects lazily on the first search; reviews and specs are empty; `aclose` disconnects without closing the user's Chrome |
 | `PoliteClient(...)` | none | `proxy` arg | defaults: concurrency 2, delay 0.5-1.5 s, timeout 10 s, 1 retry |
 | `BrowserSession(...)` | none | none | defaults: headless, idle close after 600 s, nav timeout 90 s |
 
 `ProductSource` (`base`) is a runtime-checkable Protocol: `isinstance` checks only that `name`, `search`, `offers`, `reviews`, `specs` exist, not their signatures.
 
-Module: `base`, `kaspi/source`, `olx/source`, `ozon/source`, `kimovil/source`, `polite_http`, `playwright_session`
+Module: `base`, `kaspi/source`, `olx/source`, `ozon/source`, `kimovil/source`, `wb/source`, `wb/parse`, `polite_http`, `playwright_session`
 
 ## Steps
 

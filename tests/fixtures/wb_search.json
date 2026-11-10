@@ -1,0 +1,130 @@
+{
+ "products": [
+  {
+   "id": 22893732,
+   "name": "Худи оверсайз с начесом и капюшоном",
+   "brand": "ТЕЛОДВИЖЕНИЯ",
+   "brandId": 107112,
+   "supplier": "ООО СКВТ",
+   "supplierId": 89840,
+   "supplierRating": 4.8,
+   "reviewRating": 4.8,
+   "feedbacks": 143179,
+   "time1": 1,
+   "time2": 22,
+   "weight": 1.027,
+   "volume": 80,
+   "totalQuantity": 52,
+   "sizes": [
+    {
+     "name": "52",
+     "origName": "2XL",
+     "price": {
+      "basic": 1669000,
+      "product": 928000,
+      "logistics": 35000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    },
+    {
+     "name": "48",
+     "origName": "L",
+     "price": {
+      "basic": 1669000,
+      "product": 928000,
+      "logistics": 44000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": 263793288,
+   "name": "Худи оверсайз с начесом и капюшоном",
+   "brand": "Setner",
+   "brandId": 223597,
+   "supplier": "Setner",
+   "supplierId": 86602,
+   "supplierRating": 4.9,
+   "reviewRating": 4.8,
+   "feedbacks": 6876,
+   "time1": 1,
+   "time2": 22,
+   "weight": 0.8,
+   "volume": 99,
+   "totalQuantity": 52,
+   "sizes": [
+    {
+     "name": "50",
+     "origName": "L",
+     "price": {
+      "basic": 3700000,
+      "product": 1968000,
+      "logistics": 57000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    },
+    {
+     "name": "48",
+     "origName": "M",
+     "price": {
+      "basic": 3700000,
+      "product": 1968000,
+      "logistics": 57000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": 260797919,
+   "name": "Худи укороченное оверсайз с начесом",
+   "brand": "ТЕЛОДВИЖЕНИЯ",
+   "brandId": 107112,
+   "supplier": "ООО СКВТ",
+   "supplierId": 89840,
+   "supplierRating": 4.8,
+   "reviewRating": 4.8,
+   "feedbacks": 29597,
+   "time1": 1,
+   "time2": 22,
+   "weight": 1.027,
+   "volume": 78,
+   "totalQuantity": 52,
+   "sizes": [
+    {
+     "name": "46",
+     "origName": "M",
+     "price": {
+      "basic": 1444000,
+      "product": 943000,
+      "logistics": 31000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    },
+    {
+     "name": "48",
+     "origName": "L",
+     "price": {
+      "basic": 1444000,
+      "product": 943000,
+      "logistics": 31000,
+      "return": 0,
+      "cashback": 0,
+      "wallet": 0
+     }
+    }
+   ]
+  }
+ ]
+}
